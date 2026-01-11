@@ -1367,11 +1367,12 @@ input:invalid:focus {
 }
 
 .grid-item {
-    aspect-ratio: 3/4;
+    aspect-ratio: 1/1;
     overflow: hidden;
     cursor: pointer;
     position: relative;
-    background: #f8f8f8;
+    background: #ffffff;
+    justify-content: center;
 }
 
 .grid-item img {
@@ -1704,4 +1705,107 @@ input:invalid:focus {
 .shop-page-body .navbar:not(.scrolled) .login-btn:hover {
     background-color: transparent !important;
     color: #ffffff !important;
+}
+
+/* ================================================================
+   AVANT MASTER RESPONSIVE ENGINE (MOBILE & TABLET)
+   ================================================================ */
+
+@media (max-width: 1024px) {
+    .vision-main-heading { font-size: 4rem; }
+    .section-heading { font-size: 4rem; margin-bottom: 60px; }
+    .tool-text h3 { font-size: 2.8rem; }
+    .shop-title { font-size: 4.5rem; }
+}
+
+@media (max-width: 768px) {
+    /* 1. Navbar Mobile Fix */
+    .nav-links { display: none; } /* Mobile menu logic hide */
+    .nav-right-group { gap: 15px; }
+    .logo-name-image { display: none; } /* Hide text logo on mobile */
+    .navbar { padding: 15px; }
+
+    /* 2. Hero & Banner */
+    .hero {
+        height: 40vh !important; /* Screen ki height ka sirf 40% lo */
+        min-height: auto !important;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-start; /* Image ko top se chipka do */
+    }
+
+    .banner-image {
+        height: 100% !important; /* Container ki poori height cover kare */
+        width: 100% !important;
+        object-fit: cover !important; /* Image ko stretch kiye bina box bharega */
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 3. Brand Vision Stacking */
+    .vision-main-heading { 
+        font-size: 2.5rem !important; 
+        letter-spacing: -1px; 
+        margin-bottom: 40px;
+    }
+    .vision-main-heading span { padding-left: 0; }
+    .vision-grid { flex-direction: column; gap: 30px; }
+    .vision-outro { font-size: 2.2rem; text-align: left; margin-bottom: 50px; }
+
+    /* 4. Stats Bar Stacking */
+    .stats-grid { flex-direction: column; gap: 40px; padding: 40px 0; }
+    .stat-number { font-size: 3.2rem; }
+
+    /* 5. Explore Tools (Image on top, Text below) */
+    .tool-row, .tool-row.reverse { 
+        flex-direction: column !important; 
+        text-align: center; 
+        gap: 30px;
+        margin-bottom: 80px;
+    }
+    .tool-text { order: 2; padding: 0 10px; }
+    .tool-image { 
+        order: 1; 
+        height: 400px; 
+        width: 100%; 
+    }
+    .tool-text h3 { font-size: 2.5rem; }
+    .section-heading { font-size: 3rem; border-left-width: 4px; padding-left: 15px; }
+
+    /* 6. Outfit Lab (Split Screen Fix) */
+    .build-container { flex-direction: column; padding-top: 80px; }
+    .stylist-panel { padding: 30px; border-right: none; }
+    .stylist-panel .main-heading { font-size: 3.5rem; }
+    .visual-output { padding: 20px; background: #fff; }
+    .result-frame { min-height: auto; width: 100%; }
+
+    /* 7. Wardrobe Grid */
+    .wardrobe-hero .hero-title { font-size: 3.5rem; }
+    .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+    
+    /* 8. Shop Page */
+    .shop-title { font-size: 3.2rem; letter-spacing: -2px; }
+    .shop-quote { font-size: 1.1rem; padding: 0 20px; }
+    .search-container { width: 90%; flex-direction: column; gap: 10px; background: transparent; box-shadow: none; }
+    #shop-search { border-radius: 50px; width: 100%; text-align: center; }
+    #search-btn { border-radius: 50px; padding: 15px; width: 100%; }
+
+    /* 9. Footer */
+    .footer-grid { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+    .footer-brand-section, .footer-column { align-items: center; }
+    .footer-mission { margin: 0 auto; }
+}
+
+@media (max-width: 480px) {
+    .vision-main-heading { font-size: 2rem !important; }
+    .tool-image { height: 300px; }
+    .wardrobe-hero .hero-title { font-size: 2.8rem; }
+    .login-auth-side { padding: 20px; }
+}
+@media (max-width: 768px) {
+    .brand-vision {
+        margin-top: -20px !important; /* Gap khatam karne ke liye upar khincho */
+        padding-top: 10px !important;
+        background: #fff;
+    }
 }

@@ -42,7 +42,7 @@ function updateTrendMatrix(clickedElement) {
         if (galleryDiv && photosToDistribute[index]) {
             const img = document.createElement('img');
             // PATH UPDATED HERE: assets/trends/ folder
-            img.src = `assets/${photosToDistribute[index]}`;
+            img.src = `assets/trends/${photosToDistribute[index]}`;
             img.className = 'gallery-thumb-single';
             galleryDiv.appendChild(img);
         }
