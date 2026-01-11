@@ -1,0 +1,1707 @@
+/* General Styles */
+
+
+body {
+    font-family: 'Science Gothic', sans-serif; /* Clean, modern body text */
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background-color: #fff;
+    scroll-behavior: smooth;
+}
+
+.container {
+    max-width: 100%;
+    margin: auto auto;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background-color: #000;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    border: 1px solid #000;
+}
+
+.btn:hover {
+    background-color: transparent;
+    color: #000;
+}
+
+/* Navbar */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 25px;
+    background-color: transparent; /* Starting mein transparent */
+    transition: all 0.4s ease;
+    z-index: 9999;
+    box-sizing: border-box;
+}
+
+/* Navbar links and logo color */
+.navbar .nav-links a, 
+.navbar .logo-link {
+    color: #000; /* White bg hai toh text black hona chahiye */
+}
+
+.navbar .container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between; /* Logo left mein, baki sab right mein */
+    align-items: center;
+    width: 100%;
+}
+
+.navbar.scrolled {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(5px);
+}
+
+.navbar.scrolled .nav-links a,
+.navbar.scrolled .logo {
+    color: #ffffff;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    gap: 25px; /* Individual links ke beech ka gap */
+}
+
+.nav-links li {
+    margin-left: 20px;
+}
+
+.nav-links a {
+    color: #fff;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.1em;
+    opacity: 1;
+}
+.nav-links a:hover {
+    opacity: 0.7;
+}
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.nav-right-group {
+    display: flex;
+    align-items: center;
+    gap: 35px; /* Links aur Login button ke beech ka gap */
+}
+
+.navbar.scrolled .login-btn {
+    background-color: #fff;
+    color: #000;
+    border: 1px solid #fff;
+}
+
+.logo-image {
+    height: 40px;
+    width: 43px;
+    margin-right: 5px;
+}
+
+.logo-name-image {
+    height: 35px;
+    width: auto;
+    margin-right: 10px;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+}
+
+.logo-link:hover {
+    opacity: 0.9;
+}
+
+/* --- Default Logo Style (For Homepage & Dark Backgrounds) --- */
+.logo-image, .logo-name-image {
+    filter: invert(0) brightness(1); /* Default is White */
+    transition: filter 0.4s ease;
+}
+
+/* --- Trends Page Logic: Starting State (White BG) --- */
+/* Jab body class 'trends-page' ho aur navbar 'scrolled' NA ho */
+.trends-page .navbar:not(.scrolled) .logo-image,
+.trends-page .navbar:not(.scrolled) .logo-name-image {
+    filter: invert(1) brightness(0); /* Black Logo */
+}
+
+.trends-page .navbar:not(.scrolled) .nav-links a {
+    color: #000; /* Black Links */
+}
+
+/* --- Trends Page Logic: Scrolled State (Black BG) --- */
+/* Jab navbar scroll ho jaye, tab wapas white kar do */
+.trends-page .navbar.scrolled .logo-image,
+.trends-page .navbar.scrolled .logo-name-image {
+    filter: invert(0) brightness(1); /* White Logo */
+}
+
+/* --- Homepage Logic --- */
+/* Homepage par hamesha white rahega kyunki background dark banner hai */
+.home-page .navbar .logo-image,
+.home-page .navbar .logo-name-image {
+    filter: invert(0) brightness(1);
+}
+
+.home-page .navbar .nav-links a {
+    color: #fff;
+}
+
+/* Login Button Styles */
+.login-btn {
+    padding: 8px 24px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    border-radius: 50px; /* Pill shape jaisa SS mein hai */
+    transition: all 0.4s ease;
+    
+    /* Initial state (Top pe) */
+    background-color: #000;
+    color: #fff;
+    border: 1px solid #000;
+}
+
+/* Jab Navbar scroll ho jaye (Scrolled state) */
+.navbar.scrolled .login-btn {
+    background-color: #fff;
+    color: #000;
+    border: 1px solid #fff;
+}
+
+/* Hover effects */
+.login-btn:hover {
+    opacity: 0.8;
+}
+
+
+/* Hero Section */
+.hero {
+    background-color: #ffffff;
+    text-align: center;
+    min-height: 100vh;
+    position: relative;
+}
+
+.hero h2 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.banner-image {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+}
+
+.buttons .btn {
+    margin: 0 10px;
+}
+
+/* Brand Vision Section */
+.brand-vision {
+    padding: 50px 0 10px 0;
+    background-color: #ffffff;
+}
+
+.vision-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.vision-subtext {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 5px;
+}
+
+.vision-main-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -3px;
+    margin-bottom: 75px;
+}
+
+.vision-main-heading span {
+    display: block;
+    padding-left: 10%; /* Staggered effect */
+    color: #444;
+}
+
+/* Two-Column Grid for the logic */
+.vision-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 100px;
+    margin-bottom: 50px;
+    text-align: left;
+}
+
+.vision-left, .vision-right {
+    flex: 1;
+}
+
+.vision-intro {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #111;
+    font-weight: 400;
+}
+
+.vision-system-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.vision-list {
+    list-style: none;
+    padding: 0;
+}
+
+.vision-list li {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.vision-list li strong {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.vision-outro {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.5rem;
+    text-align: right;
+    line-height: 1;
+    margin-top: px;
+    margin-bottom: 100px;
+}
+
+.vision-outro span {
+    text-decoration: underline;
+    text-underline-offset: 10px;
+}
+
+/* --- The Future of
+Personal Styling.
+      Avant-Garde Typography --- */
+h2.section-heading, .tool-text h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-style: normal; /* Italics removed here */
+    text-transform: none; 
+    letter-spacing: -1px;
+    line-height: 0.85;
+    color: #000;
+}
+/* --- Layout Architecture --- */
+.content-wrapper {
+    max-width: 1100px; /* Tightened for better focus */
+    margin: 0 auto;
+    padding: 0 5%;
+}
+
+.section-heading {
+    font-size: 6rem;
+    margin-bottom: 100px;
+    border-left: 5px solid #000; /* Asymmetric design element */
+    padding-left: 30px;
+}
+
+.tool-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 50px;
+    gap: 100px;
+}
+
+.tool-row.reverse {
+    flex-direction: row-reverse;
+}
+
+.tool-text {
+    flex: 1;
+}
+
+.tool-number {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: #999;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.tool-text h3 {
+    font-size: 3.8rem;
+    margin-bottom: 20px;
+}
+
+.tool-text p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #555;
+}
+
+/* --- Image Presentation --- */
+.tool-image {
+    flex: 1.2;
+    height: 700px; /* Tall, editorial height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.tool-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Keeps your model shots perfect and uncropped */
+    transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
+    filter: grayscale(100%); /* Editorial grayscale */
+}
+
+.tool-row:hover .tool-image img {
+    transform: scale(1.05);
+    filter: grayscale(0%); /* Color reveal on hover */
+}
+
+/* --- Technical Stats Bar --- */
+.tech-stats {
+    background-color: #000;
+    color: #fff;
+    padding: 80px 0;
+    text-align: center;
+}
+
+.stats-grid {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.stat-item {
+    flex: 1;
+}
+
+.stat-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 4rem;
+    font-weight: 700;
+}
+
+.stat-plus, .stat-percent {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    vertical-align: top;
+    margin-left: 5px;
+}
+
+.stat-label {
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    margin-top: 10px;
+    color: #888;
+}
+
+.footer {
+    background-color: #313131; /* Match your stats bar color */
+    color: #ffffff;
+    padding: 60px 20px 20px 20px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr; /* Brand section takes more space */
+    gap: 60px;
+    padding-top: 30px;
+    padding-bottom: 20px;
+    max-width: 1300px;
+    margin: 0 auto;
+    border-bottom: #828282 1px solid;
+}
+
+.footer-brand-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.footer-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-logo {
+    height: 30px;
+    filter: brightness(0) invert(1); /* Ensure logo is white */
+}
+
+.footer-brand-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.footer-mission {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #b0b0b0;
+    max-width: 400px;
+}
+
+/* Column Styling */
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers the heading and the list */
+    text-align: center;
+}
+
+.footer-column h4 {
+    margin-bottom: 25px; /* Space between heading and icons */
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.footer-column ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-column ul li {
+    margin-bottom: 12px;
+}
+
+.footer-column ul li a {
+    color: #b0b0b0;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.footer-column ul li a:hover {
+    color: #ffffff;
+}
+
+/* Center the icons list */
+.social-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center; /* Centers icons horizontally */
+    align-items: center;     /* Aligns icons vertically */
+    gap: 30px;               /* Space between icons */
+}
+
+.social-links li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.social-links svg {
+    transition: transform 0.3s ease, color 0.3s ease;
+    color: #ffffff; /* Default icon color */
+    opacity: 0.7;
+}
+
+.social-links li:hover svg {
+    transform: translateY(-3px); /* Subtle lift effect */
+    opacity: 1;
+}
+
+/* Copyright Bar */
+.footer-bottom-bar {
+    border-top: 1px solid #333;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.footer-bottom-bar p {
+    font-size: 0.75rem;
+    color: #666;
+    letter-spacing: 0.5px;
+}
+
+.logo-name-image-footer {
+    height: 30px;
+    width: auto;
+    margin-right: 10px;
+}
+
+/* --- Dedicated Login Page Styles --- */
+.login-bg {
+    background-color: #fff;
+    margin: 0;
+    overflow: hidden; /* Stops scrolling on the login screen */
+}
+
+.login-split-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+.login-auth-side {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.login-inner-wrap {
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-back-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #000;
+    text-decoration: none;
+    margin-bottom: 50px;
+    display: block;
+}
+
+.login-title-section h1 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.login-title-section p {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 30px;
+}
+
+.social-auth-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.social-auth-btn:hover { background: #f9f9f9; }
+.social-auth-btn img { width: 18px; }
+
+.auth-divider {
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    line-height: 0.1em;
+    margin: 40px 0;
+}
+.auth-divider span { background:#fff; padding:0 15px; color: #999; font-size: 0.8rem; text-transform: uppercase; }
+
+.auth-input-group { margin-bottom: 25px; }
+.auth-input-group label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; }
+.auth-input-group input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #eee;
+    background: #fcfcfc;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.forgot-link { font-size: 0.8rem; color: #999; text-decoration: none; float: right; }
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: opacity 0.3s;
+}
+.auth-submit-btn:hover { opacity: 0.8; }
+
+.auth-footer-text { text-align: center; margin-top: 30px; font-size: 0.9rem; color: #666; }
+.auth-footer-text a { color: #000; font-weight: 700; text-decoration: none; }
+
+/* Right Visual Side */
+.login-visual-side {
+    flex: 1.2;
+    position: relative;
+    background-color: #000;
+}
+
+.login-visual-side img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.8;
+}
+
+.error-msg {
+    color: #ff4d4d;
+    font-size: 0.75rem;
+    margin-top: 5px;
+    display: block;
+    font-weight: 600;
+}
+
+/* Red border when input is invalid */
+input:invalid:focus {
+    border: 1px solid #ff4d4d;
+}
+
+.logo-name-image-login {
+    height: 45px;
+    width: auto;
+    margin-right: 10px;
+    filter: invert(1) brightness(0);
+}
+
+/* Mobile Responsive */
+@media (max-width: 900px) {
+    .login-visual-side { display: none; }
+    .login-auth-side { padding: 30px; }
+}
+
+/* --- RESPONSIVE MASTER DESIGN --- */
+@media (max-width: 768px) {
+    .nav-right-group {
+        gap: 15px;
+    }
+    .nav-links {
+        display: none; /* Hide links on mobile or use a hamburger menu */
+    }
+}
+/* Tablet & Smaller Desktops (Under 1024px) */
+@media (max-width: 1024px) {
+    .section-heading {
+        font-size: 4rem;
+        margin-bottom: 60px;
+    }
+    
+    .tool-row {
+        gap: 50px;
+    }
+    
+    .tool-text h3 {
+        font-size: 2.8rem;
+    }
+}
+
+/* Mobile Devices (Under 768px) */
+@media (max-width: 768px) {
+    /* Navbar Adjustment */
+    .navbar {
+        padding: 15px 15px;
+    }
+
+    .nav-links {
+        gap: 10px;
+    }
+
+    .nav-links li {
+        margin-left: 10px;
+    }
+
+    .nav-links a {
+        font-size: 0.9em;
+    }
+
+    .logo-name-image {
+        display: none; /* Hide text-logo image on very small screens to save space */
+    }
+
+    /* Vision Section */
+    .vision-main-heading {
+        font-size: 2.5rem;
+        letter-spacing: -1px;
+    }
+
+    .vision-main-heading span {
+        padding-left: 0; /* Remove stagger on mobile */
+    }
+
+    .vision-grid {
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .vision-outro {
+        font-size: 2rem;
+        text-align: left;
+        margin-bottom: 50px;
+    }
+
+    /* Stats Bar */
+    .stats-grid {
+        flex-direction: column;
+        gap: 40px;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+    }
+
+    /* Explore Tools Rows */
+    .tool-row, .tool-row.reverse {
+        flex-direction: column; /* Stack image and text */
+        text-align: center;
+        gap: 30px;
+        margin-bottom: 80px;
+    }
+
+    .tool-text {
+        order: 2; /* Text always appears below image on mobile */
+    }
+
+    .tool-image {
+        order: 1;
+        height: 400px; /* Reduced height for mobile */
+        width: 100%;
+    }
+
+    .tool-text h3 {
+        font-size: 2.2rem;
+    }
+
+    .section-heading {
+        font-size: 2.8rem;
+        border-left: 3px solid #000;
+        padding-left: 15px;
+    }
+
+    /* Footer */
+    .footer-grid {
+        grid-template-columns: 1fr; /* Single column footer */
+        text-align: center;
+        gap: 40px;
+    }
+
+    .footer-brand-section, .footer-column {
+        align-items: center;
+    }
+
+    .footer-mission {
+        margin: 0 auto;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+}
+
+/* Very Small Devices (Under 480px) */
+@media (max-width: 480px) {
+    .vision-main-heading {
+        font-size: 2rem;
+    }
+
+    .nav-links {
+        display: none; /* Recommended: You might want to implement a Hamburger menu later */
+    }
+}
+
+
+/* --- Trends Matrix Section --- */
+.trends-main { 
+    padding: 100px 75px 0 75px; 
+    background: #fff; 
+}
+
+.matrix-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 5rem;
+    line-height: 0.8;
+    margin-bottom: 80px;
+    letter-spacing: -2px;
+    border-left: #000 5px solid;
+    padding-left: 15px;
+    margin-left: 25px;
+}
+
+.matrix-heading span { 
+    color: #999; 
+    padding-left: 10%; 
+}
+
+.trends-matrix {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 20px;
+    margin-bottom: 100px;
+    transition: all 0.5s ease;
+}
+
+.matrix-item {
+    position: relative;
+    height: 500px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #000;
+    transition: all 0.4s ease;
+}
+
+/* --- Image & Info States --- */
+.matrix-img, .matrix-info {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.matrix-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+    transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    box-sizing: border-box;
+}
+
+.matrix-img img, 
+.gallery-thumb-single {
+    display: block; /* Gap hatane ke liye */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none; /* Kisi bhi default border ko hatayein */
+    
+}
+
+.matrix-info {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    color: #fff;
+    z-index: 2;
+}
+
+.matrix-info h3 { font-family: 'Montserrat', sans-serif; font-size: 1.2rem; margin-bottom: 5px; }
+.matrix-info p { font-size: 0.7rem; letter-spacing: 2px; border-bottom: 1px solid #fff; display: inline-block; }
+
+/* --- Gallery View (Internal Grid) --- */
+.trend-gallery-view {
+    display: none;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    background: #ffffff;
+    z-index: 5;
+    /* Scroll Logic */
+    overflow: auto; 
+    scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for Chrome/Safari */
+.trend-gallery-view::-webkit-scrollbar {
+    display: none;
+}
+
+/* Clicked active item highlight style */
+.matrix-item.active::after {
+    content: 'TAP AGAIN TO RESET'; /* User guide */
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    padding: 5px 10px;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    z-index: 10;
+}
+.gallery-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: fadeInScale 0.5s ease forwards;
+}
+
+/* --- Active & Gallery Logic Classes --- */
+
+/* Jis par click kiya wo highlight rahega */
+.matrix-item.is-gallery .trend-gallery-view {
+    display: block; /* Grid ki jagah block */
+}
+
+.gallery-thumb-single {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: fadeIn 0.8s ease forwards;
+}
+
+/* Active box highlight: Iska info aur image wahi rahega jo click kiya tha */
+.matrix-item.active {
+    outline: 10px solid #000;
+    outline-offset: -10px;
+    transform: scale(1.02);
+    z-index: 20;
+}
+
+.matrix-item.active .matrix-info {
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    backdrop-filter: blur(5px);
+}
+
+.matrix-item.is-gallery .matrix-img, 
+.matrix-item.is-gallery .matrix-info {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(1.1); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 1024px) {
+    .trends-main { padding: 80px 25px 0 25px; }
+    .matrix-heading { font-size: 3.5rem; }
+    .trends-matrix { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .trends-matrix { grid-template-columns: 1fr; }
+    .matrix-item { height: 400px; }
+}
+
+
+
+/* ================================================================
+   THE OUTFIT LAB: FULL FIXED & OPTIMIZED STYLES
+   ================================================================ */
+
+.build-page {
+    background-color: #fff;
+    overflow-x: hidden;
+}
+
+/* --- Navbar & Logo Inversion Logic --- */
+.build-page .navbar:not(.scrolled) .logo-image,
+.build-page .navbar:not(.scrolled) .logo-name-image {
+    filter: invert(1) brightness(0) !important;
+}
+
+.build-page .navbar:not(.scrolled) .nav-links a {
+    color: #000 !important;
+}
+
+.build-page .navbar:not(.scrolled) .login-btn {
+    background-color: #000 !important;
+    color: #fff !important;
+    border: 1px solid #000 !important;
+}
+
+/* --- Layout Structure --- */
+.build-container {
+    display: flex;
+    min-height: 100vh;
+    padding-top: 60px; 
+    width: 100%;
+}
+.editorial-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6); /* Hero par white dikhega */
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Agar ye label white background par hai (like Outfit Lab) toh ye color use karein */
+.stylist-panel .editorial-label {
+    color: #aaa;
+}
+/* Left Panel: Inputs */
+.stylist-panel {
+    flex: 1.2;
+    padding: 80px 80px;
+    border-right: 1px solid #eee;
+    background: #fff;
+}
+
+.panel-header {
+    margin-bottom: 60px;
+}
+
+.stylist-panel .main-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 5.5rem;
+    line-height: 0.8;
+    letter-spacing: -3px;
+    color: #000;
+}
+
+.stylist-panel .main-heading span {
+    color: #999;
+    padding-left: 10%;
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Form Elements */
+.style-form {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.input-group label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #aaa;
+}
+
+.input-group select {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #000;
+    padding: 15px 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #000;
+    cursor: pointer;
+    outline: none;
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.build-btn {
+    margin-top: 30px;
+    padding: 25px;
+    background: #000;
+    color: #fff;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.build-btn:hover {
+    background: #222;
+    letter-spacing: 6px;
+    transform: translateY(-2px);
+}
+
+/* Right Panel: The Mirror */
+.visual-output {
+    flex: 1;
+    background: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.result-frame {
+    width: 100%;
+    max-width: 480px;
+    /* FIX: Height auto and min-height added to prevent text cut */
+    min-height: 700px;
+    height: auto;
+    background: #fff;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.08);
+    position: relative;
+    display: flex;
+    flex-direction: column; /* Stacks image on top, text below */
+    overflow: hidden;
+}
+
+.default-msg {
+    text-align: center;
+    padding: 60px 40px;
+    margin: auto;
+}
+
+/* Result Content Fixes */
+.result-content {
+    width: 100%;
+    display: none;
+    animation: slideUpFade 1s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+#outfit-img {
+    width: 100%;
+    height: 480px; /* Specific height for the image */
+    object-fit: cover;
+}
+
+.result-details {
+    padding: 35px;
+    background: #fff;
+    flex-grow: 1;
+}
+
+.result-details h4 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 5px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+.result-details p {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem; /* Better readability */
+    color: #444;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.shop-now-btn {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #000;
+    text-decoration: none;
+    border-bottom: 2px solid #000;
+    padding-bottom: 5px;
+    transition: 0.3s ease;
+}
+
+.shop-now-btn:hover {
+    color: #999;
+    border-bottom-color: #999;
+}
+
+@keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(40px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .build-container { flex-direction: column; }
+    .stylist-panel { padding: 40px; border-right: none; }
+    .result-frame { min-height: auto; }
+}
+
+
+
+
+/* --- WARDROBE PAGE STYLES: FINAL OPTIMIZED --- */
+
+.wardrobe-page { 
+    background-color: #fff; 
+}
+
+/* 1. Top Small Label Adjustment */
+.editorial-label-ward {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 20px; /* Adjust gap from title here */
+    display: block;
+}
+
+/* 2. Hero Section */
+.wardrobe-hero {
+    height: 70vh; /* Aap ise apne hisaab se adjust kar sakte hain */
+    background: url('../assets/ward2.jpg') center center / cover no-repeat;
+    background-color: transparent !important; /* Grey color ko block karne ke liye */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden; /* Extra space bahar na nikle */
+}
+
+.hero-overlay {
+    background: rgba(0, 0, 0, 0.4);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    padding: 0 20px;
+    padding-top: 40px; /* Move entire content up/down here */
+}
+
+/* 3. Main Title Spacing */
+.wardrobe-hero .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 6.5rem;
+    line-height: 0.85; /* Tighten lines here */
+    letter-spacing: -3px;
+    margin-top: 0;
+    margin-bottom: 35px; /* Adjust gap to button here */
+}
+
+.wardrobe-hero .hero-title span { 
+    font-style: italic; 
+    font-weight: 400; 
+}
+
+/* 4. Upload Section */
+.upload-box {
+    margin-top: 5px;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.upload-trigger {
+    background: #fff;
+    color: #000;
+    border: 1px solid #fff;
+    padding: 16px 45px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.upload-trigger:hover { 
+    background: transparent; 
+    color: #fff; 
+    letter-spacing: 5px;
+}
+
+/* 5. Gallery Grid & Delete Function */
+.gallery-section { 
+    padding: 80px 5%; 
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.grid-item {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    background: #f8f8f8;
+}
+
+.grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.grid-item:hover img { 
+    transform: scale(1.1); 
+}
+
+/* Trash Icon / Delete Button on Grid */
+.delete-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: 0.3s ease;
+    z-index: 10;
+}
+
+.grid-item:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background: #ff4d4d;
+    color: #fff;
+}
+
+/* 6. Lightbox Styles */
+.lightbox {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    display: none;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.lightbox-content {
+    max-width: 90%;
+    max-height: 85vh;
+    text-align: center;
+}
+
+#lightbox-img {
+    height: 75vh;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+}
+
+.image-meta {
+    margin-top: 25px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 3rem;
+    color: #000;
+    cursor: pointer;
+    padding: 30px;
+    opacity: 0.2;
+    transition: 0.3s;
+}
+
+.nav-btn:hover { opacity: 1; }
+.prev { left: 40px; }
+.next { right: 40px; }
+
+.close-lightbox {
+    position: absolute;
+    top: 40px; 
+    right: 50px;
+    font-size: 3rem;
+    cursor: pointer;
+}
+
+/* --- WARDROBE PAGE: NAVBAR OVERRIDES --- */
+
+/* White links and logo on the transparent hero */
+.wardrobe-page .navbar:not(.scrolled) .nav-links a {
+    color: #ffffff !important;
+}
+
+.wardrobe-page .navbar:not(.scrolled) .logo-image,
+.wardrobe-page .navbar:not(.scrolled) .logo-name-image {
+    filter: invert(0) brightness(1) !important;
+}
+
+/* White Login Button with Black Text */
+.wardrobe-page .navbar:not(.scrolled) .login-btn {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
+}
+
+.wardrobe-page .navbar:not(.scrolled) .login-btn:hover {
+    background-color: transparent !important;
+    color: #ffffff !important;
+}
+
+
+
+
+
+
+/* --- SHOP YOUR LOOK: FULL STYLES --- */
+
+.shop-page-body { background-color: #fff; }
+
+.shop-hero {
+    height: 90vh; /* Bigger background image */
+    background: url('../assets/shop-banner.jpg') center center / cover no-repeat;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+}
+
+.shop-hero, .wardrobe-hero {
+    /* 'cover' image ko stretch karta hai, 'center' alignment sahi rakhta hai */
+    background-size: cover; 
+    background-position: center center;
+    background-attachment: fixed; /* Parallax effect ke liye, looks very premium */
+    width: 100%;
+    height: 90vh;
+    overflow: hidden; /* Ye ensure karega ki koi extra image part scroller na laye */
+    position: relative;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop-hero img, .wardrobe-hero img {
+    /* Agar aapne <img> tag use kiya hai background property ki jagah */
+    width: 100vw;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hero-overlay {
+    /* Agar image dark hai toh opacity 0.3 rakhein, agar light hai toh 0.5 */
+    background: rgba(0, 0, 0, 0.35); 
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(1px); /* Halka sa blur background ko depth deta hai */
+}
+
+.shop-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 6.8rem;
+    line-height: 0.8;
+    letter-spacing: -4px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.shop-title span {
+    font-style: italic;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.shop-quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 45px;
+    letter-spacing: 1px;
+    max-width: 700px;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.shop-title, .hero-title {
+    color: #ffffff;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow text ko ubhaar deta hai */
+    font-weight: 700;
+    z-index: 2;
+}
+
+/* Aesthetic Search Bar */
+.search-container {
+    display: flex;
+    background: #fff;
+    padding: 6px;
+    width: 100%;
+    max-width: 650px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+}
+
+#shop-search {
+    flex: 1;
+    border: none;
+    padding: 18px 25px;
+    font-family: 'Montserrat', sans-serif;
+    outline: none;
+    font-size: 1rem;
+    color: #000;
+}
+
+#search-btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0 40px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+#search-btn:hover {
+    background: #333;
+    letter-spacing: 5px;
+}
+
+/* Results Grid */
+.results-section { padding: 100px 5%; background: #fff; }
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 40px;
+}
+
+.product-box {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 30px;
+    transition: transform 0.4s ease;
+}
+
+.product-box:hover { transform: translateY(-5px); }
+
+.platform-tag {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #aaa;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.product-box img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    margin-bottom: 20px;
+}
+
+.product-box h4 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.product-box p {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.initial-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    color: #ccc;
+    font-style: italic;
+    padding: 100px 0;
+}
+
+/* White links and logo on the transparent hero */
+.shop-page-body .navbar:not(.scrolled) .nav-links a {
+    color: #ffffff !important;
+}
+
+.shop-page-body .navbar:not(.scrolled) .logo-image,
+.shop-page-body .navbar:not(.scrolled) .logo-name-image {
+    filter: invert(0) brightness(1) !important;
+}
+
+/* White Login Button with Black Text */
+.shop-page-body .navbar:not(.scrolled) .login-btn {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
+}
+
+.shop-page-body .navbar:not(.scrolled) .login-btn:hover {
+    background-color: transparent !important;
+    color: #ffffff !important;
+}

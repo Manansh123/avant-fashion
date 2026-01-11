@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="build-page">
+    
+    <div id="nav-placeholder"></div>
+
+    <main class="build-container">
+        <section class="stylist-panel">
+            <header class="panel-header">
+                <p class="editorial-label">03 / OUTFIT BUILDER</p>
+                <h1 class="main-heading">THE OUTFIT <br><span>LAB</span></h1>
+            </header>
+
+            <form id="style-form" class="style-form">
+                <div class="input-group">
+                    <label>What are you wearing?</label>
+                    <select id="item-type">
+                        <option value="jeans">Baggy Jeans</option>
+                        <option value="hoodie">Oversized Hoodie</option>
+                        <option value="shirt">Linen Shirt</option>
+                        <option value="cargo">Cargo Pants</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>In what color?</label>
+                    <select id="item-color">
+                        <option value="black">Obsidian Black</option>
+                        <option value="blue">Classic Blue</option>
+                        <option value="beige">Sand Beige</option>
+                        <option value="white">Pure White</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Material/Fabric?</label>
+                    <select id="item-fabric">
+                        <option value="denim">Heavy Denim</option>
+                        <option value="cotton">Soft Cotton</option>
+                        <option value="leather">Faux Leather</option>
+                        <option value="linen">Natural Linen</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Preferred Aesthetic?</label>
+                    <select id="item-vibe">
+                        <option value="streetwear">Street-Luxe</option>
+                        <option value="oldmoney">Old Money</option>
+                        <option value="y2k">Cyber Y2K</option>
+                        <option value="academia">Dark Academia</option>
+                    </select>
+                </div>
+
+                <button type="button" class="build-btn" onclick="generateLook()">SYNTHESIZE LOOK</button>
+            </form>
+        </section>
+
+        <section class="visual-output">
+            <div class="result-frame" id="result-frame">
+                <div class="default-msg" id="default-msg">
+                    <p>Select your items to <br>generate recommendation</p>
+                </div>
+                
+                <div class="result-content" id="result-content" style="display: none;">
+                    <img src="" id="outfit-img" alt="Recommended Look">
+                    <div class="result-details">
+                        <h4 id="vibe-title">STREETWEAR CORE</h4>
+                        <p id="styling-tip">Pair this with chunky sneakers and a silver chain.</p>
+                        
+                        <div class="shop-trigger">
+                            <p>Missing some pieces?</p>
+                            <a href="#" id="shop-link" class="shop-now-btn">SHOP THE PAIRING</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="js/outfit.js"></script>
+    <div id="footer-placeholder"></div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

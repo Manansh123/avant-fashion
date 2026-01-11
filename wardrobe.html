@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant | Digital Wardrobe</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="wardrobe-page">
+    <div id="nav-placeholder"></div>
+
+    <header class="wardrobe-hero">
+        <div class="hero-overlay">
+            <p class="editorial-label-ward">03 /  PERSONAL ARCHIVE</p>
+            <h1 class="hero-title">DIGITAL <span>WARDROBE</span></h1>
+            <div class="upload-box">
+                <input type="file" id="outfit-upload" accept="image/*" hidden>
+                <button class="upload-trigger" onclick="document.getElementById('outfit-upload').click()">
+                    + UPLOAD NEW LOOK
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="gallery-section">
+        <div class="gallery-grid" id="wardrobe-grid">
+            </div>
+    </main>
+
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox" onclick="closeLightbox()">&times;</span>
+        <button class="nav-btn prev" onclick="changeImage(-1)">&#10094;</button>
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="Full Look">
+            <div class="image-meta">
+                <p id="image-timestamp"></p>
+            </div>
+        </div>
+        <button class="nav-btn next" onclick="changeImage(1)">&#10095;</button>
+    </div>
+
+    <div id="footer-placeholder"></div>
+    <script src="js/wardrobe.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

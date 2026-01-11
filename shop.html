@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="shop-page-body">
+    <div id="nav-placeholder"></div>
+
+    <main class="shop-page">
+        <header class="shop-hero">
+            <div class="hero-overlay">
+                <p class="editorial-label-ward">04 / CURATED SELECTIONS</p>
+                <h1 class="shop-title">SHOP <span>YOUR LOOK</span></h1>
+                <blockquote class="shop-quote">"Fashion is the armor to survive the reality of everyday life."</blockquote>
+                
+                <div class="search-container">
+                    <input type="text" id="shop-search" placeholder="Search for products (e.g. Linen Shirt)...">
+                    <button id="search-btn" onclick="performSearch()">SEARCH</button>
+                </div>
+            </div>
+        </header>
+
+        <section class="results-section">
+            <div class="results-grid" id="shop-results">
+                <p class="initial-msg">Enter a product name to begin your curation.</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+    <script src="js/main.js"></script>
+    <script src="js/shop.js"></script>
+</body>
+</html>
