@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant | The Future of Personal Styling</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* Extra styles for the logged-in state button */
+        .login-btn-active {
+            text-transform: lowercase !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px;
+            border: 1px solid #fff;
+            padding: 8px 15px;
+            transition: 0.3s all ease;
+        }
+
+        .login-btn-active:hover {
+            background: #fff;
+            color: #000 !important;
+        }
+    </style>
+</head>
+<script>
+    // 1. Navbar ko fetch karke placeholder mein daalo
+    fetch('navbar.html')
+        .then(response => response.text())
+        .then(data => {
+            const navPlaceholder = document.getElementById('nav-placeholder');
+            if (navPlaceholder) {
+                navPlaceholder.innerHTML = data;
+
+                // --- NAVBAR LOAD HONE KE BAAD UI UPDATE KARO ---
+                updateNavbarUI();
+            }
+        })
+        .catch(err => console.error("Navbar load nahi hua:", err));
+
+    // 2. Login status ke hisaab se button change karne ka function
+    function updateNavbarUI() {
+        const userName = localStorage.getItem('avantUserName');
+        const authBtn = document.getElementById('authBtn');
+
+        if (userName && authBtn) {
+            // Username format: @manansh (spaces hatakar lowercase)
+            const handle = userName.replace(/\s+/g, '').toLowerCase();
+            authBtn.innerText = `@${handle}`;
+            authBtn.href = "#"; // Login page par jaane se roko
+            authBtn.style.cursor = "pointer";
+
+            // Logout Logic
+            authBtn.onclick = function (e) {
+                e.preventDefault();
+                if (confirm("Do you want to Logout from Avant?")) {
+                    localStorage.removeItem('avantUserName');
+                    window.location.reload();
+                }
+            };
+        }
+    }
+</script>
+
+<body class="home-page">
+
+    <div id="nav-placeholder"></div>
+
+    <section class="hero">
+        <img src="assets/Designed.png" alt="Avant Banner" class="banner-image">
+    </section>
+
+    <section class="brand-vision">
+        <div class="container">
+            <div class="vision-wrapper">
+                <p class="vision-subtext">00 / Philosophy</p>
+                <h1 class="vision-main-heading">
+                    AVANT IS A DIALOGUE <br>
+                    <span>BETWEEN LOGIC AND INTUITION</span>
+                </h1>
+
+                <div class="vision-grid">
+                    <div class="vision-left">
+                        <p class="vision-intro">
+                            Fashion is not just what you wear — it’s how you think, how you feel, and how you move
+                            through the world. Avant represents what comes next: a forward-thinking approach.
+                        </p>
+                    </div>
+
+                    <div class="vision-right">
+                        <p class="vision-system-title">The System of Balance:</p>
+                        <ul class="vision-list">
+                            <li><strong>LOGIC</strong> — to understand structure and proportion.</li>
+                            <li><strong>MIND</strong> — to reflect intention and confidence.</li>
+                            <li><strong>BODY</strong> — to respect fit and fabric.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2 class="vision-outro">
+                    “We don’t create outfits, <br>
+                    We curate <span>alignments</span>.”
+                </h2>
+            </div>
+        </div>
+    </section>
+
+    <section class="tech-stats">
+        <div class="container stats-grid">
+            <div class="stat-item">
+                <span class="stat-number" data-target="500">0</span><span class="stat-plus">+</span>
+                <p class="stat-label">Color Harmonies</p>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" data-target="24">0</span><span class="stat-plus">/7</span>
+                <p class="stat-label">Style Logic</p>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" data-target="100">0</span><span class="stat-percent">%</span>
+                <p class="stat-label">Avant Approved</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="explore-tools">
+        <div class="container content-wrapper">
+            <h2 class="section-heading">The Future of <br>Personal Styling.</h2>
+            <div class="tool-row">
+                <div class="tool-text">
+                    <span class="tool-number">01</span>
+                    <h3>Trend Discovery</h3>
+                    <p>Decoding the visual language of the now. We parse global fashion data to bring you curated
+                        insights into Y2K revivals and Modern Minimalist movements.</p>
+                    <a href="trends.html" class="btn">Explore Trends</a>
+                </div>
+                <div class="tool-image">
+                    <img src="assets/trend-discovery.jpeg" alt="Trend Discovery">
+                </div>
+            </div>
+
+            <div class="tool-row reverse">
+                <div class="tool-text">
+                    <span class="tool-number">02</span>
+                    <h3>Outfit Builder</h3>
+                    <p>Styling as a science. Our rule-based system harmonizes color theory and occasion-appropriateness
+                        for an "Avant Approved" look.</p>
+                    <a href="outfit.html" class="btn">Start Building</a>
+                </div>
+                <div class="tool-image">
+                    <img src="assets/outfit-builder.jpg" alt="Outfit Builder">
+                </div>
+            </div>
+
+            <div class="tool-row">
+                <div class="tool-text">
+                    <span class="tool-number">03</span>
+                    <h3>Virtual Wardrobe</h3>
+                    <p>Digitize your wardrobe to identify missing links and suggest new ways to style your existing
+                        favorites sustainably.</p>
+                    <a href="wardrobe.html" class="btn">My Wardrobe</a>
+                </div>
+                <div class="tool-image">
+                    <img src="assets/virtual-wardrobe.jpg" alt="Virtual Wardrobe">
+                </div>
+            </div>
+
+            <div class="tool-row reverse">
+                <div class="tool-text">
+                    <span class="tool-number">04</span>
+                    <h3>Shop the Look</h3>
+                    <p>Directly shop curated outfits tailored to your style profile, connecting you with top brands for
+                        a seamless styling journey.</p>
+                    <a href="shop.html" class="btn">Shop Now</a>
+                </div>
+                <div class="tool-image">
+                    <img src="assets/shop-the-look.jpg" alt="Shop the Look">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        // 1. Function: Navbar aur Footer ko load karna
+        async function loadComponents() {
+            try {
+                // Navbar load karo
+                const navResponse = await fetch('navbar.html');
+                const navHtml = await navResponse.text();
+                document.getElementById('nav-placeholder').innerHTML = navHtml;
+
+                // Navbar load hone ke BAAD hi login status check karo
+                updateAuthUI();
+
+                // (Optional) Footer load karo agar placeholder hai
+                const footerPlace = document.getElementById('footer-placeholder');
+                if (footerPlace) {
+                    const footRes = await fetch('footer.html');
+                    const footHtml = await footRes.text();
+                    footerPlace.innerHTML = footHtml;
+                }
+
+            } catch (error) {
+                console.error("Layout loading error:", error);
+            }
+        }
+
+        // 2. Function: Login Status ke hisaab se UI badalna
+        function updateAuthUI() {
+            const userName = localStorage.getItem('avantUserName');
+            const authBtn = document.getElementById('authBtn');
+
+            if (userName && authBtn) {
+                // @ symbol ke saath lowercase username dikhao
+                authBtn.innerText = `@${userName.toLowerCase()}`;
+
+                authBtn.href = "#"; // Disable login link
+                authBtn.classList.add('login-btn-active'); // CSS style apply karne ke liye
+
+                authBtn.onclick = function (e) {
+                    e.preventDefault();
+                    if (confirm("Logout from Avant?")) {
+                        localStorage.removeItem('avantUserName');
+                        window.location.reload();
+                    }
+                };
+            }
+        }
+
+        // 3. Page load hote hi components load karo
+        window.onload = loadComponents;
+    </script>
+
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        // Ye function har page pe Navbar load karega + Username dikhayega
+        window.onload = () => loadLayout(); 
+    </script>
+
+</body>
+
+</html>

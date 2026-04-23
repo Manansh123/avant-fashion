@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant | Authentication</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="login-bg">
+
+    <div class="login-split-container">
+        <div class="login-auth-side">
+            <div class="login-inner-wrap">
+                <a href="index.html" class="login-back-logo">
+                    <img src="assets/logoname.png" alt="Avant" class="logo-name-image-login">
+                </a>
+
+                <div class="login-title-section">
+                    <h1 id="authTitle">Log In</h1>
+                    <p id="authSubtitle">Enter your details to access the AVANT ecosystem.</p>
+                </div>
+
+                <button class="social-auth-btn">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/500px-Google_%22G%22_logo.svg.png"
+                        alt="Google">
+                    Continue with Google
+                </button>
+
+                <div class="auth-divider"><span>Or email</span></div>
+
+                <form id="mainLoginForm">
+                    <div class="auth-input-group" id="nameGroup" style="display: none;">
+                        <label>Full Name</label>
+                        <input type="text" id="userNameInput" placeholder="Enter Username" minlength="5">
+                    </div>
+
+                    <div class="auth-input-group">
+                        <label>Email</label>
+                        <input type="email" id="userEmail" placeholder="Enter Email" required>
+                    </div>
+
+                    <div class="auth-input-group password-group">
+                        <label>Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="userPassword" placeholder="Enter Password" minlength="8"
+                                required>
+                            <button type="button" id="togglePassword"
+                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #000000; cursor: pointer; font-size: 12px; font-family: 'Montserrat';">
+                                SHOW
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="auth-submit-btn" id="submitBtn">Log In</button>
+                </form>
+
+                <p class="auth-footer-text" id="toggleText">
+                    No account? <a href="#" onclick="toggleAuthMode(event)">Sign Up here</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="login-visual-side">
+            <div class="visual-overlay"></div>
+            <img src="assets/login-img.jpg" alt="Avant Fashion Editorial">
+        </div>
+    </div>
+
+    <script>
+        let isLoginMode = true;
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#userPassword');
+
+        togglePassword.addEventListener('click', function (e) {
+            // Toggle the type attribute
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+
+            // Toggle the button text
+            this.textContent = type === 'password' ? 'SHOW' : 'HIDE';
+        });
+        function toggleAuthMode(e) {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+
+            const title = document.getElementById('authTitle');
+            const submitBtn = document.getElementById('submitBtn');
+            const toggleLink = document.getElementById('toggleText');
+            const nameGroup = document.getElementById('nameGroup');
+            const nameInput = document.getElementById('userNameInput');
+
+            if (isLoginMode) {
+                title.innerText = "Log In";
+                submitBtn.innerText = "Log In";
+                nameGroup.style.display = "none";
+
+                // --- YE FIX HAI ---
+                nameInput.required = false; // Login mein isse false hona hi chahiye
+                nameInput.value = ""; // Purana data saaf kar do
+
+                toggleLink.innerHTML = 'No account? <a href="#" onclick="toggleAuthMode(event)">Sign Up here</a>';
+            } else {
+                title.innerText = "Sign Up";
+                submitBtn.innerText = "Create Account";
+                nameGroup.style.display = "block";
+
+                // --- YE FIX HAI ---
+                nameInput.required = true; // Signup mein zaroori hai
+
+                toggleLink.innerHTML = 'Already have an account? <a href="#" onclick="toggleAuthMode(event)">Log In here</a>';
+            }
+        }
+
+        document.getElementById('mainLoginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            console.log("Form submit trigger hua!"); // Debug 1
+
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            const nameInput = document.getElementById('userNameInput').value;
+
+            if (!isLoginMode) {
+                const usernameRegex = /^[a-zA-Z0-9._]+$/;
+                if (!usernameRegex.test(nameInput)) {
+                    alert("Username Error: Only letters, numbers, dots, and underscores allowed.");
+                    return;
+                }
+            }
+
+            const endpoint = isLoginMode ? '/api/login' : '/api/signup';
+            const payload = isLoginMode ? { email, password } : { name: nameInput, email, password };
+
+            console.log("Sending to:", endpoint, payload); // Debug 2
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log("Response receive hua:", response.status); // Debug 3
+
+                const data = await response.json();
+                console.log("Server Data:", data); // Debug 4
+
+                if (response.ok) {
+                    // Pehle localStorage set karenge
+                    if (data.name) {
+                        const cleanName = data.name.toLowerCase().replace(/\s+/g, '');
+                        localStorage.setItem('avantUserName', cleanName);
+                        console.log("Name saved to storage:", cleanName);
+                    }
+
+                    alert(data.message);
+
+                    // Alert ke turant baad redirect
+                    window.location.replace("index.html");
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (error) {
+                console.error("Critical Fetch Error:", error);
+                alert("Server connection failed! Check console (F12).");
+            }
+        });
+    </script>
+</body>
+
+</html>
