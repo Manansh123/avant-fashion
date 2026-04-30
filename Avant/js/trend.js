@@ -123,3 +123,49 @@ function handleNewPost() {
     document.querySelector('#uploadModal input[type="text"]').value = '';
     fileInput.value = '';
 }
+
+async function getAIAdvice(style) {
+    const aiSection = document.getElementById('ai-advice-section');
+    const responseBox = document.getElementById('ai-response-box');
+
+    if (aiSection) {
+        aiSection.style.display = "block";
+        aiSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    responseBox.innerHTML = `<p style="color: #666; text-align: center;">Analyzing ${style} Trend...</p>`;
+
+    try {
+        const response = await fetch('/api/style-advice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ styleType: style })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const cleanText = data.advice
+                .split('.')
+                .filter(sentence => sentence.trim().length > 0)
+                .map(sentence => `<li style="margin-bottom: 10px; list-style: none; font-size: 1rem; color: #333;">✨ ${sentence.trim()}.</li>`)
+                .join('');
+
+            responseBox.innerHTML = `
+                <div class="ai-advice-content" style="padding: 25px; text-align: left; background: #fff; border-radius: 8px;">
+                    <h2 style="font-weight: 800; margin-bottom: 5px; font-size: 1.2rem; color: #000; text-transform: uppercase;">AI STYLING GUIDELINES</h2>
+                    
+                    <h1 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 20px; color: #1a1a1a; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                        ${style}
+                    </h1>
+                    
+                    <ul style="padding-left: 0;">
+                        ${cleanText}
+                    </ul>
+                </div>
+            `;
+        }
+    } catch (err) {
+        responseBox.innerHTML = "<p>Connection error. Please try again.</p>";
+    }
+}

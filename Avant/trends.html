@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="assets/logo.png">
-    <title>Avant</title>
+    <title>Avant | Trends</title>
     <link rel="stylesheet" href="css/style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
@@ -24,56 +24,56 @@
 
             <div class="trends-matrix" id="styleMatrix">
 
-                <div class="matrix-item" data-trend="grandpa" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="grandpa" onclick="updateTrendMatrix(this); getAIAdvice('Eclectic Grandpa')">
                     <div class="matrix-img"><img src="assets/gp-main.jpg" alt="Grandpa"></div>
                     <div class="matrix-info">
                         <h3>Eclectic Grandpa</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
 
-                <div class="matrix-item" data-trend="streetwear" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="streetwear" onclick="updateTrendMatrix(this); getAIAdvice('Streetwear')">
                     <div class="matrix-img"><img src="assets/sl-main.jpg" alt="Street"></div>
                     <div class="matrix-info">
                         <h3>Streetwear</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
 
-                <div class="matrix-item" data-trend="y2k" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="y2k" onclick="updateTrendMatrix(this); getAIAdvice('Y2K Revival')">
                     <div class="matrix-img"><img src="assets/y-main.jpg" alt="Y2K"></div>
                     <div class="matrix-info">
                         <h3>Y2K Revival</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
 
-                <div class="matrix-item" data-trend="oldmoney" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="oldmoney" onclick="updateTrendMatrix(this); getAIAdvice('Old Money')">
                     <div class="matrix-img"><img src="assets/om-main.jpg" alt="Old Money"></div>
                     <div class="matrix-info">
                         <h3>Old Money</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
 
-                <div class="matrix-item" data-trend="academia" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="academia" onclick="updateTrendMatrix(this); getAIAdvice('Dark Academia')">
                     <div class="matrix-img"><img src="assets/da-main.jpg" alt="Academia"></div>
                     <div class="matrix-info">
                         <h3>Dark Academia</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
 
-                <div class="matrix-item" data-trend="fluid" onclick="updateTrendMatrix(this)">
+                <div class="matrix-item" data-trend="fluid" onclick="updateTrendMatrix(this); getAIAdvice('Gender Fluid')">
                     <div class="matrix-img"><img src="assets/gf-main.jpg" alt="Fluid"></div>
                     <div class="matrix-info">
                         <h3>Gender Fluid</h3>
-                        <p>EXPLORE ARCHIVE</p>
+                        <p>EXPLORE AI STYLIST</p>
                     </div>
                     <div class="trend-gallery-view"></div>
                 </div>
@@ -88,6 +88,13 @@
         </div>
     </main>
 
+    <section id="ai-advice-section" style="display:none; margin: 40px auto; max-width: 900px; padding: 40px; border: 1px solid #000; background: #fff; position: relative;">
+        <span onclick="document.getElementById('ai-advice-section').style.display='none'" style="position: absolute; right: 20px; top: 10px; cursor: pointer; font-size: 2rem;">&times;</span>
+        <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; letter-spacing: 3px; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 20px;">AVANT AI STYLIST</h2>
+        <div id="ai-response-box" style="font-family: 'Montserrat', sans-serif; line-height: 1.8; font-size: 1.1rem; color: #000;">
+            </div>
+    </section>
+
     <div id="uploadModal" class="custom-modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeUploadModal()">&times;</span>
@@ -98,7 +105,6 @@
         </div>
     </div>
 
-
     <div id="footer-placeholder"></div>
 
     <script src="js/main.js"></script>
@@ -106,10 +112,8 @@
     <script src="js/auth.js"></script>
 
     <script>
-        // Ye function har page pe Navbar load karega + Username dikhayega
         window.onload = () => loadLayout(); 
     </script>
 
 </body>
-
 </html>

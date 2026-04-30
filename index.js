@@ -90,3 +90,53 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Avant AI is running at http://localhost:${PORT}`);
 });
+
+// --- GEMINI AI CONFIGURATION ---
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Force using the stable 1.5-flash model with explicit API version
+const model = genAI.getGenerativeModel(
+    { model: "gemini-1.5-flash" },
+    { apiVersion: 'v1' }
+);
+
+app.post('/api/style-advice', async (req, res) => {
+    try {
+        const { styleType } = req.body;
+        console.log("🚀 Requesting AI for:", styleType);
+
+        // Prompt for high-quality tips
+        const prompt = `You are the Chief AI Stylist for Avant. A user is exploring "${styleType}". Generate 5 short, futuristic styling tips for 2026. Each tip must be one concise line with emojis. No headings, no bold text, just bullet points.`;
+
+        // Setting a timeout/content generation
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log("✅ AI Response Success!");
+        res.json({ success: true, advice: text });
+
+    } catch (error) {
+        console.log("--- ❌ GEMINI CRASHED (Using Backups) ---");
+        console.error("Error Message:", error.message);
+
+        // Backup Data (Formatting remains consistent)
+        const backups = {
+            "Eclectic Grandpa": "Vintage cardigan with loose trousers and leather loafers 🧥. Patterned sweater over collared shirt with relaxed pants 👓. Earth-tone blazer with knit vest and retro shoes 🍂. Mix stripes + checks with oversized outerwear 🧶. Old-school glasses with muted layered outfits 🧓",
+            "Streetwear": "Oversized hoodie with cargo pants and chunky sneakers 🔥. Graphic tee layered with flannel and baggy jeans 🧢. Neutral tracksuit with crossbody bag and caps 🎯. Puffer jacket with joggers and high-tops ❄️. Denim-on-denim with bold sneakers and chains 👟.",
+            "Y2K Revival": "Baby tee with low-rise jeans and mini bag ✨. Metallic top with cargo pants and tinted sunglasses 💿. Cropped jacket with flared pants and platform shoes 💫. Shiny fabrics with bold colors and glossy accessories 💖. Denim skirt with boots and retro shades 👢.",
+            "Old Money": "Linen shirt with tailored trousers and loafers 🤍. Neutral blazer with polo tee and chinos 🏛️. Cashmere sweater over shirt with formal pants 🧵. Monochrome outfit with minimal accessories 🎩. Classic watch with clean elegant layering ⌚.",
+            "Dark Academia": "Brown blazer with turtleneck and pleated pants 📚. Long coat with boots and muted tones 🌫️. Knit sweater with check trousers and loafers 🍁. Layered scarves with vintage shirts and belts 🕯️. Dark palette outfits with structured silhouettes 🖤.",
+            "Gender Fluid": "Oversized shirt with wide-leg pants and boots 🌈. Skirt layered with hoodie and sneakers 💫. Fluid silhouettes with soft fabrics and neutral tones 🧵. Blazers styled with unconventional pairings ✨. Mixed masculine and feminine elements with bold confidence 💥."
+        };
+
+        // Fallback logic: "Avant Offline Mode" text removed as requested
+        const backupAdvice = backups[req.body.styleType] || "Clean white sneakers with straight-fit jeans 👟. Layered lightweight shirt over a plain tee 🌿. Neutral hoodie with joggers and minimal trainers 🧢. Denim jacket with black jeans 🔵. Simple accessories like a watch and backpack 🎒.";
+        
+        res.json({ 
+            success: true, 
+            advice: backupAdvice 
+        });
+    }
+});
