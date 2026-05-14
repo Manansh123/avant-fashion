@@ -2,7 +2,7 @@
 // AVANT TREND.JS — Phase 3 (Cloudinary Upload + Groq AI)
 // ================================================================
 
-const GROQ_API_KEY = 'groqapikey-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'; // Replace with your actual Groq API key
+const GROQ_API_KEY = process.env.GROQ_API_KEY; 
 
 const trendArchives = {
     grandpa:   ["gp1.jpg","gp2.jpg","gp3.jpg","gp4.jpg","gp5.jpg"],
