@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="assets/logo.png">
-    <title>Avant</title>
+    <title>Avant — The Outfit Lab</title>
     <link rel="stylesheet" href="css/style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
@@ -17,87 +17,229 @@
     <div id="nav-placeholder"></div>
 
     <main class="build-container">
+        <!-- ============================================================
+             LEFT PANEL: THE CONTROLS (Smart Canvas)
+             ============================================================ -->
         <section class="stylist-panel">
             <header class="panel-header">
                 <p class="editorial-label">03 / OUTFIT BUILDER</p>
                 <h1 class="main-heading">THE OUTFIT <br><span>LAB</span></h1>
             </header>
 
-            <form id="style-form" class="style-form">
-                <div class="input-group">
-                    <label>What are you wearing?</label>
-                    <select id="item-type">
-                        <option value="jeans">Baggy Jeans</option>
-                        <option value="hoodie">Oversized Hoodie</option>
-                        <option value="shirt">Linen Shirt</option>
-                        <option value="cargo">Cargo Pants</option>
-                    </select>
+            <form id="style-form" class="style-form" autocomplete="off" onsubmit="return false;">
+
+                <!-- Grid: 7 datalist inputs (alphabetical) -->
+                <div class="lab-grid">
+
+                    <!-- 1. AESTHETIC -->
+                    <div class="input-group">
+                        <label for="lab-aesthetic">Aesthetic</label>
+                        <input list="aesthetic-list" id="lab-aesthetic" placeholder="Choose or type..." />
+                        <datalist id="aesthetic-list">
+                            <option value="Avant-Garde">
+                            <option value="Bohemian">
+                            <option value="Cottagecore">
+                            <option value="Coquette">
+                            <option value="Cyber Y2K">
+                            <option value="Dark Academia">
+                            <option value="Gorpcore">
+                            <option value="Grunge">
+                            <option value="Minimalist">
+                            <option value="Old Money">
+                            <option value="Preppy">
+                            <option value="Streetwear">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 2. COLOR -->
+                    <div class="input-group">
+                        <label for="lab-color">Color</label>
+                        <input list="color-list" id="lab-color" placeholder="Choose or type..." />
+                        <datalist id="color-list">
+                            <option value="Beige">
+                            <option value="Black">
+                            <option value="Blue">
+                            <option value="Brown">
+                            <option value="Burgundy">
+                            <option value="Cream">
+                            <option value="Forest Green">
+                            <option value="Grey">
+                            <option value="Navy">
+                            <option value="Olive">
+                            <option value="Pastel Pink">
+                            <option value="Red">
+                            <option value="Silver">
+                            <option value="White">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 3. FABRIC -->
+                    <div class="input-group">
+                        <label for="lab-fabric">Fabric</label>
+                        <input list="fabric-list" id="lab-fabric" placeholder="Choose or type..." />
+                        <datalist id="fabric-list">
+                            <option value="Cashmere">
+                            <option value="Chiffon">
+                            <option value="Corduroy">
+                            <option value="Cotton">
+                            <option value="Denim">
+                            <option value="Leather">
+                            <option value="Linen">
+                            <option value="Satin">
+                            <option value="Silk">
+                            <option value="Tweed">
+                            <option value="Velvet">
+                            <option value="Wool">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 4. FOOTWEAR -->
+                    <div class="input-group">
+                        <label for="lab-footwear">Footwear</label>
+                        <input list="footwear-list" id="lab-footwear" placeholder="Choose or type..." />
+                        <datalist id="footwear-list">
+                            <option value="Ballet Flats">
+                            <option value="Boots">
+                            <option value="Chunky Sneakers">
+                            <option value="Heels">
+                            <option value="Loafers">
+                            <option value="Mary Janes">
+                            <option value="Mules">
+                            <option value="Oxford Shoes">
+                            <option value="Platforms">
+                            <option value="Sandals">
+                            <option value="Slides">
+                            <option value="Sneakers">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 5. ITEM -->
+                    <div class="input-group">
+                        <label for="lab-item">Item</label>
+                        <input list="item-list" id="lab-item" placeholder="Choose or type..." />
+                        <datalist id="item-list">
+                            <option value="Baggy Jeans">
+                            <option value="Blazer">
+                            <option value="Cargo Pants">
+                            <option value="Co-ord Set">
+                            <option value="Dress">
+                            <option value="Hoodie">
+                            <option value="Jumpsuit">
+                            <option value="Linen Shirt">
+                            <option value="Mini Skirt">
+                            <option value="Pleated Trousers">
+                            <option value="Polo Tee">
+                            <option value="Sweater">
+                            <option value="Trench Coat">
+                            <option value="T-Shirt">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 6. OCCASION -->
+                    <div class="input-group">
+                        <label for="lab-occasion">Occasion</label>
+                        <input list="occasion-list" id="lab-occasion" placeholder="Choose or type..." />
+                        <datalist id="occasion-list">
+                            <option value="Brunch">
+                            <option value="Casual Outing">
+                            <option value="Date Night">
+                            <option value="Festival">
+                            <option value="Formal Event">
+                            <option value="Office">
+                            <option value="Party">
+                            <option value="Travel">
+                            <option value="Vacation">
+                            <option value="Wedding">
+                            <option value="Workout">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
+                    <!-- 7. WEATHER -->
+                    <div class="input-group">
+                        <label for="lab-weather">Weather</label>
+                        <input list="weather-list" id="lab-weather" placeholder="Choose or type..." />
+                        <datalist id="weather-list">
+                            <option value="Cloudy">
+                            <option value="Cold">
+                            <option value="Hot">
+                            <option value="Humid">
+                            <option value="Mild">
+                            <option value="Monsoon">
+                            <option value="Rainy">
+                            <option value="Snowy">
+                            <option value="Sunny">
+                            <option value="Windy">
+                            <option value="Others">
+                        </datalist>
+                    </div>
+
                 </div>
 
-                <div class="input-group">
-                    <label>In what color?</label>
-                    <select id="item-color">
-                        <option value="black">Obsidian Black</option>
-                        <option value="blue">Classic Blue</option>
-                        <option value="beige">Sand Beige</option>
-                        <option value="white">Pure White</option>
-                    </select>
+                <!-- Additional Details -->
+                <div class="input-group lab-textarea-wrap">
+                    <label for="lab-mood">Additional Details / Mood</label>
+                    <textarea id="lab-mood" rows="3"
+                        placeholder='e.g. "distressed neon patches, rebellious mood, layered chains..."'></textarea>
                 </div>
 
-                <div class="input-group">
-                    <label>Material/Fabric?</label>
-                    <select id="item-fabric">
-                        <option value="denim">Heavy Denim</option>
-                        <option value="cotton">Soft Cotton</option>
-                        <option value="leather">Faux Leather</option>
-                        <option value="linen">Natural Linen</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label>Preferred Aesthetic?</label>
-                    <select id="item-vibe">
-                        <option value="streetwear">Street-Luxe</option>
-                        <option value="oldmoney">Old Money</option>
-                        <option value="y2k">Cyber Y2K</option>
-                        <option value="academia">Dark Academia</option>
-                    </select>
-                </div>
-
-                <button type="button" class="build-btn" onclick="generateLook()">SYNTHESIZE LOOK</button>
+                <button type="button" class="build-btn" id="lab-generate-btn" onclick="generateLook()">SYNTHESIZE LOOK</button>
             </form>
         </section>
 
+        <!-- ============================================================
+             RIGHT PANEL: THE MIRROR
+             ============================================================ -->
         <section class="visual-output">
-            <div class="result-frame" id="result-frame">
-                <div class="default-msg" id="default-msg">
-                    <p>Select your items to <br>generate recommendation</p>
-                </div>
+            <div class="mirror-wrapper">
+                <div class="result-frame mirror-frame" id="result-frame">
+                    <div class="default-msg" id="default-msg">
+                        <p>Configure your look on the left <br>and watch it manifest in the mirror.</p>
+                    </div>
 
-                <div class="result-content" id="result-content" style="display: none;">
-                    <img src="" id="outfit-img" alt="Recommended Look">
-                    <div class="result-details">
-                        <h4 id="vibe-title">STREETWEAR CORE</h4>
-                        <p id="styling-tip">Pair this with chunky sneakers and a silver chain.</p>
+                    <div class="result-content" id="result-content" style="display: none;">
+                        <div class="mirror-img-wrap">
+                            <img src="" id="outfit-img" alt="Recommended Look">
+                            <div class="mirror-loader" id="mirror-loader" style="display:none;">
+                                <span></span><span></span><span></span>
+                                <p>WEAVING YOUR LOOK...</p>
+                            </div>
+                        </div>
+                        <div class="result-details">
+                            <h4 id="vibe-title">YOUR SIGNATURE LOOK</h4>
+                            <p id="styling-tip">Your AI-generated caption will appear here.</p>
 
-                        <div class="shop-trigger">
-                            <p>Missing some pieces?</p>
-                            <a href="#" id="shop-link" class="shop-now-btn">SHOP THE PAIRING</a>
+                            <ul id="item-list-render" class="item-list-render"></ul>
                         </div>
                     </div>
+                </div>
+
+                <!-- Hidden action buttons appear after generation -->
+                <div class="mirror-actions" id="mirror-actions" style="display:none;">
+                    <button type="button" class="action-btn save-btn" id="save-look-btn">
+                        💾 SAVE TO TRY-ON CLOSET
+                    </button>
+                    <button type="button" class="action-btn shop-btn" id="shop-look-btn">
+                        🛍️ SHOP THIS LOOK
+                    </button>
                 </div>
             </div>
         </section>
     </main>
-    <script src="js/outfit.js"></script>
+
     <div id="footer-placeholder"></div>
 
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/outfit.js"></script>
 
     <script>
-        // Ye function har page pe Navbar load karega + Username dikhayega
-        window.onload = () => loadLayout(); 
+        window.onload = () => loadLayout();
     </script>
 </body>
 

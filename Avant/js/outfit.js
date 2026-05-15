@@ -1,104 +1,266 @@
+// ================================================================
+// AVANT — THE OUTFIT LAB (Phase 4 + 5)
+// Connects: 7 datalist inputs + mood textarea
+//      → /api/generate-outfit-logic (Pollinations image prompt + Gemini caption + item list)
+//      → Mirror render
+//      → "Save to Try-On Closet" (Phase 4 bridge → MongoDB / Cloudinary)
+//      → "Shop this Look" (Phase 5 bridge → shop.html via localStorage)
+// ================================================================
 
-console.log("AVANT OUTFIT LAB LOADED");
+console.log("✨ AVANT OUTFIT LAB v2 — LOADED");
 
-// --- THE OUTFIT LAB: BRAIN (ENGLISH VERSION) ---
-const outfitDatabase = {
-    "jeans-blue-streetwear": {
-        title: "STREET-LUXE CORE",
-        tip: "Style your blue baggy jeans with an oversized graphic hoodie and chunky white sneakers for a definitive street aesthetic.",
-        image: "assets/o4.jpg", 
-        shop: "oversized-hoodie"
-    },
-    "jeans-black-oldmoney": {
-        title: "QUIET LUXURY",
-        tip: "Pair these black denims with a tucked-in cream polo and premium leather loafers to achieve a sophisticated minimalist look.",
-        image: "assets/o1.jpg",
-        shop: "cream-polo"
-    },
-    "shirt-white-oldmoney": {
-        title: "CLASSIC OLD MONEY",
-        tip: "Match this white linen shirt with beige chinos and a brown leather belt for a timeless, high-society silhouette.",
-        image: "assets/o2.jpg",
-        shop: "beige-chinos"
-    },
-    "hoodie-black-y2k": {
-        title: "CYBER Y2K VIBE",
-        tip: "Coordinate this black hoodie with baggy silver metallic pants and tinted sunglasses for a perfect 2000s revival look.",
-        image: "assets/o3.jpg",
-        shop: "silver-pants"
-    },
-    "cargo-beige-streetwear": {
-        title: "URBAN EXPLORER",
-        tip: "Layer your beige cargos with a fitted black compression shirt and technical boots to master the utility-chic trend.",
-        image: "assets/o5.jpg",
-        shop: "crop-top"
-    }
-};
+// ---------------- AUTH HELPERS ----------------
+function isLoggedIn() { return !!localStorage.getItem('avantUserName'); }
+function getUsername() { return localStorage.getItem('avantUserName') || null; }
 
-function generateLook() {
-    console.log("Synthesizing...");
+// ---------------- IN-MEMORY STATE ----------------
+// Last generated look (used by Save & Shop buttons)
+let _lastLook = null;
+//  { imageUrl, caption, itemList, inputs, imagePrompt }
 
-    // 1. Inputs collect karna aur clean karna
-    const typeElement = document.getElementById('item-type');
-    const colorElement = document.getElementById('item-color');
-    const vibeElement = document.getElementById('item-vibe');
+// ---------------- INPUT COLLECTION ----------------
+function readField(id) {
+    const el = document.getElementById(id);
+    if (!el) return '';
+    const v = (el.value || '').trim();
+    // "Others" → treat as empty (backend will handle gracefully)
+    if (v.toLowerCase() === 'others') return '';
+    return v;
+}
 
-    // ID Check Safety
-    if (!typeElement || !colorElement || !vibeElement) {
-        console.error("Error: Dropdown IDs nahi mili. Check your HTML.");
+function collectInputs() {
+    return {
+        item:              readField('lab-item'),
+        color:             readField('lab-color'),
+        fabric:            readField('lab-fabric'),
+        aesthetic:         readField('lab-aesthetic'),
+        occasion:          readField('lab-occasion'),
+        weather:           readField('lab-weather'),
+        footwear:          readField('lab-footwear'),
+        additionalDetails: readField('lab-mood')
+    };
+}
+
+// ---------------- UI HELPERS ----------------
+function showMirrorLoading(on) {
+    const loader = document.getElementById('mirror-loader');
+    const img    = document.getElementById('outfit-img');
+    if (loader) loader.style.display = on ? 'flex' : 'none';
+    if (img && on) img.style.opacity = '0.25';
+    if (img && !on) img.style.opacity = '1';
+}
+
+function renderItemList(items) {
+    const ul = document.getElementById('item-list-render');
+    if (!ul) return;
+    ul.innerHTML = '';
+    if (!items || items.length === 0) return;
+    items.forEach(it => {
+        const li = document.createElement('li');
+        li.textContent = it;
+        ul.appendChild(li);
+    });
+}
+
+function setActionsVisible(on) {
+    const actions = document.getElementById('mirror-actions');
+    if (actions) actions.style.display = on ? 'flex' : 'none';
+}
+
+// ---------------- STEP 3: GENERATE ----------------
+async function generateLook() {
+    const inputs = collectInputs();
+
+    // Soft validation: need at least 2 fields filled
+    const filledCount = Object.values(inputs).filter(v => v && v.length > 0).length;
+    if (filledCount < 2) {
+        alert("Please fill at least 2 fields to synthesize a look.");
         return;
     }
 
-    const type = typeElement.value.toLowerCase().trim();
-    const color = colorElement.value.toLowerCase().trim();
-    const vibe = vibeElement.value.toLowerCase().trim();
-
-    // 2. Key Generation
-    const searchKey = `${type}-${color}-${vibe}`;
-    console.log("Generated Key:", searchKey);
-
-    // 3. UI Elements
-    const defaultMsg = document.getElementById('default-msg');
+    // UI: switch to result frame, show loader, hide actions
+    const defaultMsg    = document.getElementById('default-msg');
     const resultContent = document.getElementById('result-content');
-    const outfitImg = document.getElementById('outfit-img');
-    const vibeTitle = document.getElementById('vibe-title');
-    const stylingTip = document.getElementById('styling-tip');
-    const shopLink = document.getElementById('shop-link');
+    const vibeTitle     = document.getElementById('vibe-title');
+    const stylingTip    = document.getElementById('styling-tip');
+    const outfitImg     = document.getElementById('outfit-img');
+    const generateBtn   = document.getElementById('lab-generate-btn');
 
-    // 4. Logic Apply karna
-    if (outfitDatabase[searchKey]) {
-        const data = outfitDatabase[searchKey];
+    if (defaultMsg)    defaultMsg.style.display = 'none';
+    if (resultContent) resultContent.style.display = 'block';
+    setActionsVisible(false);
+    renderItemList([]);
 
-        // UI Transformation
-        if (defaultMsg) defaultMsg.style.display = 'none';
-        if (resultContent) resultContent.style.display = 'block';
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.dataset._label = generateBtn.innerText;
+        generateBtn.innerText = 'SYNTHESIZING...';
+    }
+    if (stylingTip) stylingTip.innerText = 'Consulting the AI stylist...';
+    if (vibeTitle)  vibeTitle.innerText  = 'WEAVING YOUR LOOK';
+    if (outfitImg) {
+        outfitImg.src = '';
+        outfitImg.alt = 'Generating...';
+    }
+    showMirrorLoading(true);
 
-        // Content Update
+    try {
+        const res = await fetch('/api/generate-outfit-logic', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(inputs)
+        });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.message || 'Generation failed');
+
+        const { imageUrl, caption, itemList, imagePrompt } = data;
+
+        // Cache for Save / Shop buttons
+        _lastLook = { imageUrl, caption, itemList, imagePrompt, inputs: data.inputs || inputs };
+
+        // ---------- THE MIRROR EFFECT ----------
+        // Pollinations URL — load via <img>, browser streams it
         if (outfitImg) {
-            outfitImg.src = data.image;
-            outfitImg.onerror = function() {
-                console.error("Image missing at: " + data.image);
-                alert("File not found in assets/");
+            outfitImg.onload = () => {
+                showMirrorLoading(false);
+                outfitImg.style.opacity = '1';
             };
+            outfitImg.onerror = () => {
+                showMirrorLoading(false);
+                if (stylingTip) stylingTip.innerText = 'The mirror clouded over. Try regenerating in a moment.';
+            };
+            outfitImg.alt = caption || 'Generated Outfit';
+            outfitImg.src = imageUrl;
         }
-        
-        if (vibeTitle) vibeTitle.innerText = data.title;
-        if (stylingTip) stylingTip.innerText = data.tip;
-        if (shopLink) shopLink.href = `shop.html?item=${data.shop}`;
-        
-        console.log("Success: " + data.title);
-    } else {
-        // Combination Fallback
-        console.warn("No match for: " + searchKey);
-        if (defaultMsg) {
-            defaultMsg.style.display = 'block';
-            defaultMsg.innerHTML = `
-                <div style="padding: 20px; border: 1px dashed #000; text-align: center;">
-                    <h3 style="font-family: Montserrat; font-size: 1rem;">COMBINATION NOT FOUND</h3>
-                    <p style="font-size: 0.8rem;">Lab searched for: <b>${searchKey}</b></p>
-                </div>
-            `;
+
+        // Caption + structured item list
+        if (vibeTitle) {
+            const vibe = (inputs.aesthetic || 'YOUR SIGNATURE').toUpperCase();
+            vibeTitle.innerText = `${vibe} LOOK`;
         }
-        if (resultContent) resultContent.style.display = 'none';
+        if (stylingTip) stylingTip.innerText = caption || 'Your look is ready.';
+
+        renderItemList(itemList);
+
+        // Reveal Save + Shop buttons
+        setActionsVisible(true);
+
+    } catch (err) {
+        console.error('❌ Outfit Lab error:', err);
+        showMirrorLoading(false);
+        if (stylingTip) stylingTip.innerText = 'Something went wrong. Please try again.';
+        alert('Could not generate outfit: ' + err.message);
+    } finally {
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.innerText = generateBtn.dataset._label || 'SYNTHESIZE LOOK';
+        }
     }
 }
+
+// ---------------- STEP 4: SAVE TO TRY-ON CLOSET ----------------
+async function saveLookToCloset() {
+    if (!_lastLook || !_lastLook.imageUrl) {
+        alert('Generate a look first.');
+        return;
+    }
+
+    const btn = document.getElementById('save-look-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.dataset._label = btn.innerText;
+        btn.innerText = 'SAVING...';
+    }
+
+    try {
+        const res = await fetch('/api/save-generated-outfit', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                imageUrl: _lastLook.imageUrl,
+                userName: getUsername() || undefined,
+                caption:  _lastLook.caption,
+                itemList: _lastLook.itemList,
+                inputs:   _lastLook.inputs
+            })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Save failed');
+
+        // Update the cached URL to the permanent Cloudinary URL
+        _lastLook.imageUrl = data.imageUrl;
+
+        // Phase 5 bridge: this is the image Virtual Try-On will use as "Overlay"
+        // Stash it locally so other pages can pick it up.
+        try {
+            const tryOnPayload = {
+                imageUrl:  data.imageUrl,
+                itemId:    data.itemId || null,
+                caption:   _lastLook.caption,
+                itemList:  _lastLook.itemList,
+                savedAt:   Date.now()
+            };
+            localStorage.setItem('avant_last_tryon_overlay', JSON.stringify(tryOnPayload));
+        } catch (e) { /* ignore quota errors */ }
+
+        if (btn) btn.innerText = data.savedToDb ? '✓ SAVED TO CLOSET' : '✓ SAVED (GUEST)';
+        setTimeout(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = btn.dataset._label || '💾 SAVE TO TRY-ON CLOSET';
+            }
+        }, 2200);
+
+        if (!data.savedToDb) {
+            // Hint guest users
+            console.log('👤 Saved in guest mode — log in to persist permanently.');
+        }
+
+    } catch (err) {
+        console.error('Save failed:', err);
+        alert('Could not save: ' + err.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = btn.dataset._label || '💾 SAVE TO TRY-ON CLOSET';
+        }
+    }
+}
+
+// ---------------- STEP 5: SHOP THIS LOOK ----------------
+function shopThisLook() {
+    if (!_lastLook || !_lastLook.itemList || _lastLook.itemList.length === 0) {
+        alert('Generate a look first.');
+        return;
+    }
+
+    // Stash item list in localStorage so shop.html can pick it up symmetrically
+    try {
+        const payload = {
+            items:    _lastLook.itemList,
+            caption:  _lastLook.caption || '',
+            imageUrl: _lastLook.imageUrl || '',
+            inputs:   _lastLook.inputs || {},
+            createdAt: Date.now()
+        };
+        localStorage.setItem('avant_shop_list', JSON.stringify(payload));
+    } catch (e) { /* ignore */ }
+
+    // Pass first item as a URL hint (so direct sharing also works)
+    const firstItem = encodeURIComponent(_lastLook.itemList[0] || '');
+    const url = `shop.html?fromLab=1&q=${firstItem}`;
+    window.location.href = url;
+}
+
+// ---------------- WIRE BUTTONS ON LOAD ----------------
+document.addEventListener('DOMContentLoaded', () => {
+    const saveBtn = document.getElementById('save-look-btn');
+    const shopBtn = document.getElementById('shop-look-btn');
+    if (saveBtn) saveBtn.addEventListener('click', saveLookToCloset);
+    if (shopBtn) shopBtn.addEventListener('click', shopThisLook);
+});
+
+// Expose to inline onclicks
+window.generateLook    = generateLook;
+window.saveLookToCloset = saveLookToCloset;
+window.shopThisLook    = shopThisLook;
