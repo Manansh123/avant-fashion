@@ -7,6 +7,24 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const User = require('./models/User');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// ================================================================
+// GEMINI CONFIG — needs GEMINI_API_KEY in .env
+// ================================================================
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+let geminiModel = null;
+try {
+    if (GEMINI_API_KEY) {
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        console.log('✅ Gemini AI initialised');
+    } else {
+        console.warn('⚠️ GEMINI_API_KEY not set — Outfit Lab will use fallback captions.');
+    }
+} catch (e) {
+    console.warn('⚠️ Gemini init failed:', e.message);
+}
 
 const app = express();
 app.use(express.json());
@@ -327,6 +345,292 @@ app.delete('/api/my-wardrobe/:id', async (req, res) => {
         res.json({ success: true, message: "Item deleted" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ================================================================
+// PHASE 4 ROUTE: OUTFIT LAB — THE LOGIC ENGINE
+// Receives 7 dropdown inputs + additionalDetails
+// Returns: { imagePrompt, caption, itemList }
+// ================================================================
+
+// Helper: Pollinations text endpoint (used as a free Gemini fallback)
+function fetchTextFromPollinations(prompt) {
+    return new Promise((resolve, reject) => {
+        const encodedPrompt = encodeURIComponent(prompt);
+        const options = {
+            hostname: 'text.pollinations.ai',
+            path: `/${encodedPrompt}`,
+            method: 'GET',
+            headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/plain' },
+            timeout: 25000
+        };
+        const req = https.request(options, (response) => {
+            let data = '';
+            response.on('data', chunk => data += chunk);
+            response.on('end', () => {
+                if (data && data.trim().length > 10) resolve(data.trim());
+                else reject(new Error('Empty response from Pollinations text'));
+            });
+        });
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('Pollinations text timeout')); });
+        req.end();
+    });
+}
+
+// Helper: parse Gemini / Pollinations text into { caption, itemList }
+// Expected format (we ask for it in the prompt):
+//   CAPTION: <line 1>
+//   <line 2>
+//   ITEMS:
+//   - item one
+//   - item two
+function parseStylistResponse(raw, fallbackItems = []) {
+    if (!raw) return { caption: '', itemList: fallbackItems };
+
+    // Strip markdown code fences if any
+    const text = raw.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '').trim();
+
+    let caption = '';
+    let itemList = [];
+
+    const lower = text.toLowerCase();
+    const itemsIdx = lower.indexOf('items:');
+
+    if (itemsIdx !== -1) {
+        const captionPart = text.slice(0, itemsIdx).replace(/^caption\s*:?/i, '').trim();
+        const itemsPart   = text.slice(itemsIdx + 'items:'.length).trim();
+
+        caption = captionPart
+            .split('\n')
+            .map(l => l.replace(/^caption\s*:?/i, '').trim())
+            .filter(Boolean)
+            .slice(0, 3)
+            .join(' ');
+
+        itemList = itemsPart
+            .split('\n')
+            .map(l => l.replace(/^[\-\*\d\.\)\s]+/, '').trim())
+            .filter(Boolean);
+    } else {
+        // No structured response → first 2 lines as caption, rest as items
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        caption = lines.slice(0, 2).join(' ');
+        itemList = lines.slice(2)
+            .map(l => l.replace(/^[\-\*\d\.\)\s]+/, '').trim())
+            .filter(Boolean);
+    }
+
+    // Trim caption + clean items
+    caption = caption.replace(/^["']|["']$/g, '').slice(0, 280);
+    itemList = itemList
+        .map(i => i.replace(/[.,;]\s*$/, '').slice(0, 60))
+        .filter(i => i.length > 1)
+        .slice(0, 8);
+
+    if (itemList.length === 0) itemList = fallbackItems;
+
+    return { caption, itemList };
+}
+
+app.post('/api/generate-outfit-logic', async (req, res) => {
+    try {
+        const {
+            item, color, fabric, aesthetic, occasion, weather, footwear,
+            additionalDetails
+        } = req.body || {};
+
+        // Sanitise: collapse blanks / "Others" to neutral words
+        const clean = (v, fallback = '') => {
+            if (!v || typeof v !== 'string') return fallback;
+            const t = v.trim();
+            if (!t || t.toLowerCase() === 'others') return fallback;
+            return t;
+        };
+
+        const _item       = clean(item, 'statement outfit');
+        const _color      = clean(color, 'neutral-toned');
+        const _fabric     = clean(fabric, 'premium fabric');
+        const _aesthetic  = clean(aesthetic, 'editorial');
+        const _occasion   = clean(occasion, 'everyday wear');
+        const _weather    = clean(weather, 'mild');
+        const _footwear   = clean(footwear, 'matching footwear');
+        const _details    = clean(additionalDetails, '');
+
+        // ---------- IMAGE PROMPT (for Pollinations image endpoint) ----------
+        const imagePrompt = [
+            `A 4k high-fashion editorial photograph of a full-body model wearing`,
+            `a ${_color} ${_fabric} ${_item},`,
+            `styled in ${_aesthetic} aesthetic,`,
+            `for ${_occasion} during ${_weather} weather,`,
+            `paired with ${_footwear}.`,
+            _details ? `Mood and details: ${_details}.` : '',
+            `Studio lighting, magazine cover composition, sharp focus, cinematic, vogue-style photography.`
+        ].filter(Boolean).join(' ');
+
+        // ---------- TEXT PROMPT (Gemini) ----------
+        const textPrompt = `You are a luxury fashion stylist for AVANT magazine.
+
+Outfit parameters:
+- Item: ${_item}
+- Color: ${_color}
+- Fabric: ${_fabric}
+- Aesthetic: ${_aesthetic}
+- Occasion: ${_occasion}
+- Weather: ${_weather}
+- Footwear: ${_footwear}
+${_details ? `- Additional mood/details: ${_details}` : ''}
+
+Respond in EXACTLY this structured format (and nothing else):
+
+CAPTION:
+<a stylish 2-line editorial caption describing this look>
+
+ITEMS:
+- <clothing item 1 (specific, shoppable, e.g. "${_color} ${_fabric} ${_item}")>
+- <clothing item 2>
+- <clothing item 3>
+- <clothing item 4 (footwear)>
+- <accessory if relevant>
+
+Each item must be a single concrete shoppable product (no full sentences). Do not include any extra commentary.`;
+
+        // Fallback item list if AI fails
+        const fallbackItems = [
+            `${_color} ${_fabric} ${_item}`.trim(),
+            `${_footwear}`.trim(),
+            `${_aesthetic} accessories`.trim()
+        ].filter(Boolean);
+
+        let rawText = null;
+        let usedSource = 'fallback';
+
+        // ---------- TRY GEMINI ----------
+        if (geminiModel) {
+            try {
+                const result = await geminiModel.generateContent(textPrompt);
+                rawText = result?.response?.text?.() || null;
+                if (rawText && rawText.trim().length > 10) usedSource = 'gemini';
+                else rawText = null;
+            } catch (e) {
+                console.warn('⚠️ Gemini call failed, falling back to Pollinations text:', e.message);
+            }
+        }
+
+        // ---------- FALLBACK: POLLINATIONS TEXT ----------
+        if (!rawText) {
+            try {
+                rawText = await fetchTextFromPollinations(textPrompt);
+                usedSource = 'pollinations';
+            } catch (e) {
+                console.warn('⚠️ Pollinations text fallback failed:', e.message);
+            }
+        }
+
+        // ---------- PARSE ----------
+        let { caption, itemList } = parseStylistResponse(rawText, fallbackItems);
+
+        // Ultimate fallback caption
+        if (!caption) {
+            caption = `${_aesthetic} energy meets ${_occasion} versatility. A ${_color} ${_item} that owns every frame.`;
+        }
+        if (!itemList || itemList.length === 0) itemList = fallbackItems;
+
+        // Build Pollinations image URL (frontend will hit this directly)
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=768&height=1024&nologo=true&enhance=true&seed=${Date.now() % 100000}`;
+
+        console.log(`🎨 Outfit Lab generated [${usedSource}] → ${itemList.length} items`);
+
+        return res.json({
+            success:   true,
+            source:    usedSource,
+            imagePrompt,
+            imageUrl,
+            caption,
+            itemList,
+            inputs: {
+                item: _item, color: _color, fabric: _fabric, aesthetic: _aesthetic,
+                occasion: _occasion, weather: _weather, footwear: _footwear,
+                additionalDetails: _details
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ /api/generate-outfit-logic error:', error);
+        return res.status(500).json({ success: false, message: error.message || 'Outfit generation failed' });
+    }
+});
+
+// ================================================================
+// PHASE 4 ROUTE: SAVE GENERATED OUTFIT TO TRY-ON CLOSET (Wardrobe)
+// Bridge between Outfit Lab → MongoDB Wardrobe
+// Accepts a remote imageUrl (Pollinations) and pipes it into Cloudinary,
+// then saves to WardrobeItem so Virtual Try-On (Phase 5) can use it.
+// ================================================================
+function fetchImageBuffer(url) {
+    return new Promise((resolve, reject) => {
+        const lib = url.startsWith('http://') ? require('http') : https;
+        lib.get(url, (response) => {
+            // Follow one redirect
+            if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
+                return fetchImageBuffer(response.headers.location).then(resolve).catch(reject);
+            }
+            if (response.statusCode !== 200) {
+                return reject(new Error(`Image fetch failed with status ${response.statusCode}`));
+            }
+            const chunks = [];
+            response.on('data', c => chunks.push(c));
+            response.on('end', () => resolve(Buffer.concat(chunks)));
+            response.on('error', reject);
+        }).on('error', reject).setTimeout(60000, function () { this.destroy(new Error('Image fetch timeout')); });
+    });
+}
+
+app.post('/api/save-generated-outfit', async (req, res) => {
+    try {
+        const { imageUrl, userName, caption, itemList, inputs } = req.body || {};
+        if (!imageUrl) return res.status(400).json({ success: false, message: 'imageUrl is required' });
+
+        console.log(`💾 Save generated outfit for ${userName || 'guest'}`);
+
+        // Pull the Pollinations image into a buffer, then push to Cloudinary
+        const buffer = await fetchImageBuffer(imageUrl);
+        const cloudResult = await uploadToCloudinary(buffer, 'wardrobe');
+
+        let savedToDb = false;
+        let itemId = null;
+
+        if (userName) {
+            const user = await UserModel.findOne({ name: userName.toLowerCase() });
+            if (user) {
+                const item = new WardrobeItem({
+                    userId:       user._id,
+                    imageUrl:     cloudResult.secure_url,
+                    cloudinaryId: cloudResult.public_id
+                });
+                await item.save();
+                savedToDb = true;
+                itemId    = item._id;
+            }
+        }
+
+        return res.json({
+            success:  true,
+            imageUrl: cloudResult.secure_url,
+            itemId,
+            savedToDb,
+            caption:  caption || '',
+            itemList: Array.isArray(itemList) ? itemList : [],
+            inputs:   inputs || {},
+            timestamp: new Date().toLocaleString('en-GB', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            })
+        });
+    } catch (error) {
+        console.error('❌ /api/save-generated-outfit error:', error);
+        return res.status(500).json({ success: false, message: error.message || 'Save failed' });
     }
 });
 
