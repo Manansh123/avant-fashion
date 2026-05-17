@@ -99,9 +99,9 @@ body {
     display: flex;
     margin: 0;
     padding: 0;
-    gap: 10px;
+    gap: 11px;
 }
-.nav-links li { margin-left: 16px; }
+.nav-links li { margin-left: 18px; }
 .nav-links a {
     color: #fff;
     text-decoration: none;
