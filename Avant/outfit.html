@@ -1,611 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="assets/logo.png">
-    <title>Avant | Outfit Builder</title>
+    <title>Avant</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,400;1,700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* ── PHASE 4: OUTFIT BUILDER ── */
-        .build-page { background: #fff; }
-
-        .build-page .navbar:not(.scrolled) .logo-image,
-        .build-page .navbar:not(.scrolled) .logo-name-image { filter: invert(1) brightness(0) !important; }
-        .build-page .navbar:not(.scrolled) .nav-links a { color: #000 !important; }
-        .build-page .navbar:not(.scrolled) .login-btn { background:#000!important; color:#fff!important; border:1px solid #000!important; }
-
-        .outfit-container {
-            display: flex;
-            min-height: 100vh;
-            padding-top: 70px;
-        }
-
-        /* ── LEFT PANEL ── */
-        .controls-panel {
-            flex: 1.1;
-            padding: 50px 55px;
-            border-right: 1px solid #eee;
-            overflow-y: auto;
-        }
-
-        .controls-panel .panel-label {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 5px;
-            color: #aaa;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .controls-panel .panel-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(3rem, 4vw, 4.5rem);
-            font-weight: 700;
-            line-height: 0.85;
-            letter-spacing: -2px;
-            color: #000;
-            margin-bottom: 45px;
-        }
-        .controls-panel .panel-title span {
-            display: block;
-            color: #aaa;
-            font-style: italic;
-            font-weight: 400;
-            padding-left: 8%;
-        }
-
-        /* ── DROPDOWN GRID ── */
-        .dropdowns-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 28px 30px;
-            margin-bottom: 30px;
-        }
-
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .field-group label {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 4px;
-            color: #bbb;
-            text-transform: uppercase;
-        }
-
-        .field-group input[list] {
-            appearance: none;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid #e0e0e0;
-            padding: 12px 0;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #000;
-            width: 100%;
-            outline: none;
-            transition: border-color 0.3s;
-            cursor: text;
-        }
-        .field-group input[list]:focus { border-bottom-color: #000; }
-        .field-group input[list]::placeholder { color: #ccc; font-weight: 400; font-size: 1.2rem; }
-
-        /* ── MOOD TEXTAREA ── */
-        .mood-group {
-            margin-bottom: 35px;
-        }
-        .mood-group label {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 4px;
-            color: #bbb;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .mood-group textarea {
-            width: 100%;
-            min-height: 90px;
-            border: none;
-            border-bottom: 2px solid #e0e0e0;
-            border-top: none;
-            padding: 12px 0;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.9rem;
-            color: #333;
-            resize: none;
-            outline: none;
-            background: transparent;
-            line-height: 1.6;
-            transition: border-color 0.3s;
-            box-sizing: border-box;
-        }
-        .mood-group textarea:focus { border-bottom-color: #000; }
-        .mood-group textarea::placeholder { color: #ccc; }
-
-        /* ── GENERATE BUTTON ── */
-        .generate-btn {
-            width: 100%;
-            padding: 20px;
-            background: #000;
-            color: #fff;
-            border: none;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            font-size: 0.75rem;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-        }
-        .generate-btn:hover:not(:disabled) { background: #222; letter-spacing: 7px; }
-        .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; letter-spacing: 5px; }
-
-        /* ── RIGHT PANEL: THE MIRROR ── */
-        .mirror-panel {
-            flex: 0.9;
-            background: #f7f7f7;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 50px 40px;
-            position: relative;
-        }
-
-        .mirror-frame {
-            width: 100%;
-            max-width: 360px;
-            aspect-ratio: 3 / 4;
-            background: #fff;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 25px;
-            flex-shrink: 0;
-        }
-
-        /* Default state */
-        .mirror-default {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-        .mirror-default .mirror-icon {
-            font-size: 3rem;
-            opacity: 0.15;
-        }
-        .mirror-default p {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.7rem;
-            letter-spacing: 3px;
-            color: #ccc;
-            text-transform: uppercase;
-            text-align: center;
-            line-height: 1.8;
-        }
-
-        /* Loading state */
-        .mirror-loading {
-            position: absolute;
-            inset: 0;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            background: #fff;
-        }
-        .mirror-loading .loading-text {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.65rem;
-            letter-spacing: 4px;
-            color: #aaa;
-            text-transform: uppercase;
-            animation: pulse-text 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-text { 0%,100%{opacity:0.3} 50%{opacity:1} }
-
-        .loading-bar {
-            width: 120px;
-            height: 2px;
-            background: #eee;
-            position: relative;
-            overflow: hidden;
-        }
-        .loading-bar::after {
-            content: '';
-            position: absolute;
-            left: -50%;
-            width: 50%;
-            height: 100%;
-            background: #000;
-            animation: loading-slide 1s ease-in-out infinite;
-        }
-        @keyframes loading-slide { 0%{left:-50%} 100%{left:150%} }
-
-        /* Generated image */
-        #generated-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none;
-            animation: fadeInUp 0.8s ease forwards;
-        }
-        @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
-        /* ── CAPTION AREA ── */
-        .caption-area {
-            width: 100%;
-            max-width: 360px;
-            display: none;
-            animation: fadeInUp 0.8s 0.2s ease forwards;
-            opacity: 0;
-            margin-bottom: 20px;
-        }
-        .caption-text {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.1rem;
-            font-style: italic;
-            color: #333;
-            line-height: 1.6;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .caption-divider {
-            width: 30px;
-            height: 2px;
-            background: #000;
-            margin: 0 auto 15px;
-        }
-        .shopping-items {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-        }
-        .item-chip {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            background: #f0f0f0;
-            color: #555;
-            padding: 5px 10px;
-            border-radius: 2px;
-        }
-
-        /* ── ACTION BUTTONS ── */
-        .action-buttons {
-            width: 100%;
-            max-width: 360px;
-            display: none;
-            gap: 12px;
-            flex-direction: column;
-        }
-
-        .action-btn {
-            width: 100%;
-            padding: 15px;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-        }
-
-        .btn-save {
-            background: #000;
-            color: #fff;
-        }
-        .btn-save:hover { background: #333; }
-        .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .btn-shop {
-            background: transparent;
-            color: #000;
-            border: 1px solid #000;
-        }
-        .btn-shop:hover { background: #000; color: #fff; }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) {
-            .outfit-container { flex-direction: column; }
-            .controls-panel { padding: 30px 25px; border-right: none; }
-            .dropdowns-grid { grid-template-columns: 1fr; }
-            .mirror-panel { padding: 30px 20px; }
-        }
-    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
+        rel="stylesheet">
 </head>
 
 <body class="build-page">
+
     <div id="nav-placeholder"></div>
 
-    <main class="outfit-container">
+    <main class="build-container">
+        <section class="stylist-panel">
+            <header class="panel-header">
+                <p class="editorial-label">03 / OUTFIT BUILDER</p>
+                <h1 class="main-heading">THE OUTFIT <br><span>LAB</span></h1>
+            </header>
 
-        <!-- LEFT: CONTROLS -->
-        <section class="controls-panel">
-            <span class="panel-label">03 / OUTFIT BUILDER</span>
-            <h1 class="panel-title">THE OUTFIT<br><span>LAB</span></h1>
-
-            <!-- 7 DATALIST DROPDOWNS -->
-            <div class="dropdowns-grid">
-
-                <!-- 1. Item -->
-                <div class="field-group">
-                    <label>Item</label>
-                    <input list="items-list" id="inp-item" placeholder="e.g. Blazer" autocomplete="off">
-                    <datalist id="items-list">
-                        <option value="Baggy Jeans">
-                        <option value="Blazer">
-                        <option value="Cargo Pants">
-                        <option value="Chinos">
-                        <option value="Co-ord Set">
-                        <option value="Crop Top">
-                        <option value="Denim Jacket">
-                        <option value="Dress">
-                        <option value="Dungarees">
-                        <option value="Hoodie">
-                        <option value="Jumpsuit">
-                        <option value="Kurta">
-                        <option value="Leather Jacket">
-                        <option value="Linen Shirt">
-                        <option value="Maxi Skirt">
-                        <option value="Mini Skirt">
-                        <option value="Overcoat">
-                        <option value="Polo Shirt">
-                        <option value="Shorts">
-                        <option value="Suit">
-                        <option value="Sweater">
-                        <option value="Tank Top">
-                        <option value="Track Pants">
-                        <option value="Turtleneck">
-                        <option value="Others">
-                    </datalist>
+            <form id="style-form" class="style-form">
+                <div class="input-group">
+                    <label>What are you wearing?</label>
+                    <select id="item-type">
+                        <option value="jeans">Baggy Jeans</option>
+                        <option value="hoodie">Oversized Hoodie</option>
+                        <option value="shirt">Linen Shirt</option>
+                        <option value="cargo">Cargo Pants</option>
+                    </select>
                 </div>
 
-                <!-- 2. Color -->
-                <div class="field-group">
-                    <label>Color</label>
-                    <input list="colors-list" id="inp-color" placeholder="e.g. Midnight Black" autocomplete="off">
-                    <datalist id="colors-list">
-                        <option value="Beige">
-                        <option value="Black">
-                        <option value="Blue">
-                        <option value="Brown">
-                        <option value="Burgundy">
-                        <option value="Camel">
-                        <option value="Charcoal">
-                        <option value="Cream">
-                        <option value="Forest Green">
-                        <option value="Grey">
-                        <option value="Khaki">
-                        <option value="Lavender">
-                        <option value="Mustard">
-                        <option value="Navy">
-                        <option value="Nude">
-                        <option value="Olive">
-                        <option value="Orange">
-                        <option value="Pink">
-                        <option value="Red">
-                        <option value="Rust">
-                        <option value="Sage Green">
-                        <option value="Teal">
-                        <option value="White">
-                        <option value="Yellow">
-                        <option value="Others">
-                    </datalist>
+                <div class="input-group">
+                    <label>In what color?</label>
+                    <select id="item-color">
+                        <option value="black">Obsidian Black</option>
+                        <option value="blue">Classic Blue</option>
+                        <option value="beige">Sand Beige</option>
+                        <option value="white">Pure White</option>
+                    </select>
                 </div>
 
-                <!-- 3. Fabric -->
-                <div class="field-group">
-                    <label>Fabric</label>
-                    <input list="fabrics-list" id="inp-fabric" placeholder="e.g. Heavy Denim" autocomplete="off">
-                    <datalist id="fabrics-list">
-                        <option value="Canvas">
-                        <option value="Cashmere">
-                        <option value="Chiffon">
-                        <option value="Corduroy">
-                        <option value="Cotton">
-                        <option value="Denim">
-                        <option value="Fleece">
-                        <option value="Jersey">
-                        <option value="Leather">
-                        <option value="Linen">
-                        <option value="Nylon">
-                        <option value="Polyester">
-                        <option value="Satin">
-                        <option value="Silk">
-                        <option value="Suede">
-                        <option value="Tweed">
-                        <option value="Velvet">
-                        <option value="Wool">
-                        <option value="Others">
-                    </datalist>
+                <div class="input-group">
+                    <label>Material/Fabric?</label>
+                    <select id="item-fabric">
+                        <option value="denim">Heavy Denim</option>
+                        <option value="cotton">Soft Cotton</option>
+                        <option value="leather">Faux Leather</option>
+                        <option value="linen">Natural Linen</option>
+                    </select>
                 </div>
 
-                <!-- 4. Aesthetic -->
-                <div class="field-group">
-                    <label>Aesthetic</label>
-                    <input list="aesthetics-list" id="inp-aesthetic" placeholder="e.g. Old Money" autocomplete="off">
-                    <datalist id="aesthetics-list">
-                        <option value="Bohemian">
-                        <option value="Business Casual">
-                        <option value="Casual">
-                        <option value="Coastal">
-                        <option value="Cottagecore">
-                        <option value="Cyber Y2K">
-                        <option value="Dark Academia">
-                        <option value="Eclectic Grandpa">
-                        <option value="Formal">
-                        <option value="Gender Fluid">
-                        <option value="Gorpcore">
-                        <option value="Grunge">
-                        <option value="Minimalist">
-                        <option value="Old Money">
-                        <option value="Preppy">
-                        <option value="Punk">
-                        <option value="Quiet Luxury">
-                        <option value="Romantic">
-                        <option value="Sportswear">
-                        <option value="Streetwear">
-                        <option value="Techwear">
-                        <option value="Vintage">
-                        <option value="Others">
-                    </datalist>
+                <div class="input-group">
+                    <label>Preferred Aesthetic?</label>
+                    <select id="item-vibe">
+                        <option value="streetwear">Street-Luxe</option>
+                        <option value="oldmoney">Old Money</option>
+                        <option value="y2k">Cyber Y2K</option>
+                        <option value="academia">Dark Academia</option>
+                    </select>
                 </div>
 
-                <!-- 5. Occasion -->
-                <div class="field-group">
-                    <label>Occasion</label>
-                    <input list="occasions-list" id="inp-occasion" placeholder="e.g. Date Night" autocomplete="off">
-                    <datalist id="occasions-list">
-                        <option value="Beach">
-                        <option value="Brunch">
-                        <option value="Business Meeting">
-                        <option value="Campus">
-                        <option value="Casual Outing">
-                        <option value="Concert">
-                        <option value="Date Night">
-                        <option value="Festival">
-                        <option value="Formal Event">
-                        <option value="Gym">
-                        <option value="Office">
-                        <option value="Party">
-                        <option value="Sports">
-                        <option value="Travel">
-                        <option value="Wedding">
-                        <option value="Others">
-                    </datalist>
-                </div>
-
-                <!-- 6. Weather -->
-                <div class="field-group">
-                    <label>Weather</label>
-                    <input list="weather-list" id="inp-weather" placeholder="e.g. Cold" autocomplete="off">
-                    <datalist id="weather-list">
-                        <option value="Cold">
-                        <option value="Cool">
-                        <option value="Extreme Cold">
-                        <option value="Hot">
-                        <option value="Humid">
-                        <option value="Monsoon">
-                        <option value="Rainy">
-                        <option value="Snowy">
-                        <option value="Spring">
-                        <option value="Windy">
-                        <option value="Others">
-                    </datalist>
-                </div>
-
-                <!-- 7. Footwear (full width) -->
-                <div class="field-group" style="grid-column: 1 / -1;">
-                    <label>Footwear</label>
-                    <input list="footwear-list" id="inp-footwear" placeholder="e.g. Chunky Sneakers" autocomplete="off">
-                    <datalist id="footwear-list">
-                        <option value="Ballet Flats">
-                        <option value="Boots">
-                        <option value="Chelsea Boots">
-                        <option value="Chunky Sneakers">
-                        <option value="Espadrilles">
-                        <option value="Flip Flops">
-                        <option value="Formal Shoes">
-                        <option value="Heels">
-                        <option value="Loafers">
-                        <option value="Mules">
-                        <option value="Oxford Shoes">
-                        <option value="Platform Shoes">
-                        <option value="Running Shoes">
-                        <option value="Sandals">
-                        <option value="Slides">
-                        <option value="Sneakers">
-                        <option value="Stilettos">
-                        <option value="Thigh High Boots">
-                        <option value="Others">
-                    </datalist>
-                </div>
-            </div>
-
-            <!-- MOOD / ADDITIONAL DETAILS -->
-            <div class="mood-group">
-                <label>Mood & Additional Details</label>
-                <textarea id="inp-mood" placeholder="Describe your vibe, specific details, or styling notes... (e.g. 'distressed neon patches, oversized silhouette, retro 90s energy')"></textarea>
-            </div>
-
-            <!-- GENERATE -->
-            <button class="generate-btn" id="generateBtn" onclick="generateOutfit()">
-                SYNTHESIZE LOOK
-            </button>
+                <button type="button" class="build-btn" onclick="generateLook()">SYNTHESIZE LOOK</button>
+            </form>
         </section>
 
-        <!-- RIGHT: THE MIRROR -->
-        <section class="mirror-panel">
-
-            <!-- IMAGE FRAME -->
-            <div class="mirror-frame" id="mirrorFrame">
-                <!-- Default -->
-                <div class="mirror-default" id="mirrorDefault">
-                    <div class="mirror-icon">◈</div>
-                    <p>Select your parameters<br>to generate a look</p>
+        <section class="visual-output">
+            <div class="result-frame" id="result-frame">
+                <div class="default-msg" id="default-msg">
+                    <p>Select your items to <br>generate recommendation</p>
                 </div>
-                <!-- Loading -->
-                <div class="mirror-loading" id="mirrorLoading">
-                    <p class="loading-text">Synthesizing your look</p>
-                    <div class="loading-bar"></div>
+
+                <div class="result-content" id="result-content" style="display: none;">
+                    <img src="" id="outfit-img" alt="Recommended Look">
+                    <div class="result-details">
+                        <h4 id="vibe-title">STREETWEAR CORE</h4>
+                        <p id="styling-tip">Pair this with chunky sneakers and a silver chain.</p>
+
+                        <div class="shop-trigger">
+                            <p>Missing some pieces?</p>
+                            <a href="#" id="shop-link" class="shop-now-btn">SHOP THE PAIRING</a>
+                        </div>
+                    </div>
                 </div>
-                <!-- Generated Image -->
-                <img id="generated-image" src="" alt="Generated Look">
             </div>
-
-            <!-- CAPTION + ITEMS -->
-            <div class="caption-area" id="captionArea">
-                <p class="caption-text" id="captionText"></p>
-                <div class="caption-divider"></div>
-                <div class="shopping-items" id="shoppingItems"></div>
-            </div>
-
-            <!-- ACTION BUTTONS -->
-            <div class="action-buttons" id="actionButtons">
-                <button class="action-btn btn-save" id="saveBtn" onclick="saveToCloset()">
-                    ↓ &nbsp; Save to My Closet
-                </button>
-                <button class="action-btn btn-shop" onclick="shopThisLook()">
-                    ↗ &nbsp; Shop this Look
-                </button>
-            </div>
-
         </section>
     </main>
-
+    <script src="js/outfit.js"></script>
     <div id="footer-placeholder"></div>
 
-    <script src="js/outfit.js"></script>
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
+
     <script>
-        window.onload = () => loadLayout();
+        // Ye function har page pe Navbar load karega + Username dikhayega
+        window.onload = () => loadLayout(); 
     </script>
 </body>
+
 </html>
