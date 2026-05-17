@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Navbar</title>
 </head>
-
 <body>
     <nav class="navbar">
         <div class="container">
@@ -18,18 +16,26 @@
             </div>
 
             <div class="nav-right-group">
-                <ul class="nav-links">
+                <ul class="nav-links" id="navLinks">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="trends.html">Trends</a></li>
                     <li><a href="outfit.html">Build Outfit</a></li>
                     <li><a href="wardrobe.html">Wardrobe</a></li>
                     <li><a href="shop.html">Shop</a></li>
                 </ul>
-                <a href="login.html" id="authBtn" class="login-btn">Log In / Sign Up</a>
+                <a href="login.html" id="authBtn" class="login-btn">Log In</a>
+
+                <!-- HAMBURGER — only visible on mobile -->
+                <button class="burger-menu" id="burgerMenu" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
             </div>
         </div>
     </nav>
 
+    <!-- Mobile overlay close area -->
+    <div class="nav-overlay" id="navOverlay" onclick="closeMobileMenu()"></div>
 </body>
-
 </html>
