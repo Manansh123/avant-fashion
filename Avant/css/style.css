@@ -64,7 +64,6 @@ body {
 /* Scrolled state */
 .navbar.scrolled {
     background: rgba(0, 0, 0, 0.92);
-    backdrop-filter: blur(6px);
 }
 .navbar.scrolled .nav-links a,
 .navbar.scrolled .logo { color: #fff; }
@@ -100,14 +99,14 @@ body {
     display: flex;
     margin: 0;
     padding: 0;
-    gap: 6px;
+    gap: 10px;
 }
 .nav-links li { margin-left: 16px; }
 .nav-links a {
     color: #fff;
     text-decoration: none;
     font-family: 'Montserrat', sans-serif;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     opacity: 1;
     transition: opacity 0.2s;
 }
