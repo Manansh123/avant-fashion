@@ -2051,3 +2051,172 @@ input:invalid:focus {
         background: #fff;
     }
 }
+
+/* ================================================================
+   AVANT OUTFIT BUILDER — MIRROR CENTER & ACCURATE BOX FIX
+   ================================================================ */
+
+/* ── THE MIRROR VISUAL FRAME ADJUSTMENTS ── */
+.mirror-panel {
+    justify-content: center !important; 
+    align-items: center !important;
+}
+
+.mirror-frame {
+    max-width: 420px !important;  /* Frame size scaled larger */
+    height: 680px !important;     /* Perfect Flux aspect-ratio alignment */
+    /*border: 4px solid #000000 !important;  Premium luxury boutique bounding */
+    background: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.12) !important;
+}
+
+.action-buttons {
+    width: 100%;
+    max-width: 360px;
+    display: none;
+    gap: 12px;
+    flex-direction: column;
+    margin-top: 15px; /* Added separation from text items elements */
+}
+
+.caption-area, .action-buttons {
+    max-width: 480px !important; /* Text and buttons aligned layout width */
+    text-align: center !important;
+}
+
+.mirror-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ai-text-wrapper {
+    width: 100%;
+    max-width: 520px; /* Sized symmetrically with the mirror */
+    text-align: center;
+    margin-top: 25px;
+}
+
+.action-btn-group {
+    width: 100%;
+    max-width: 520px; /* Button row width aligned with look */
+    justify-content: center;
+}
+.caption-area {
+    width: 100%;
+    max-width: 360px;
+    display: none;
+    animation: fadeInUp 0.8s 0.2s ease forwards;
+    opacity: 0;
+    margin-top: 35px; /* Added heavy margin from the image frame boundary */
+    margin-bottom: 25px;
+    padding: 0 10px; /* Inside padding to avoid touching left/right walls */
+    box-sizing: border-box;
+}
+.caption-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem; /* Made slightly bigger for elegant readability */
+    font-style: italic;
+    color: #222;
+    line-height: 1.6;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.field-group input[list] {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff; /* Plain white modern input track */
+    border: 1px solid #e0e0e0; /* Clean light boundary box instead of thin line */
+    padding: 14px 16px; /* Inside space for breathability */
+    font-family: 'Montserrat', sans-serif; /* Modern clean font */
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #000;
+    width: 100%;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+.field-group input[list]:focus { 
+    border-color: #000; /* Deep black border highlight on selection */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+.field-group input[list]::placeholder { 
+    color: #999; 
+    font-size: 0.8rem; 
+    font-family: 'Montserrat', sans-serif;
+}
+/* ================================================================
+   AVANT CORE SYSTEM RESPONSIVE & PHONE UI CORRECTIONS
+   ================================================================ */
+
+@media (max-width: 768px) {
+    /* Main home screen text container overflow tracking */
+    .hero-content h1, .panel-title {
+        font-size: clamp(2.2rem, 8vw, 3.2rem) !important;
+        line-height: 1.0 !important;
+        letter-spacing: -1px !important;
+        word-break: break-word !important;
+    }
+    
+    .hero-content p, .panel-label {
+        font-size: 0.6rem !important;
+        letter-spacing: 2px !important;
+        max-width: 100% !important;
+    }
+
+    /* Fixed top menu desaparecidos correction */
+    .navbar {
+        padding: 15px 20px !important;
+        overflow: visible !important; /* Prevents container from hiding full viewport dropdown lists */
+    }
+
+    .nav-links {
+        position: fixed !important;
+        top: 0 !important;
+        right: -100% !important;
+        height: 100vh !important;
+        width: 75% !important;
+        background: #ffffff !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 30px !important;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.05) !important;
+        transition: right 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) !important;
+        z-index: 99999 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Menu button slide toggles visibility force rules */
+    .nav-links.nav-active {
+        right: 0 !important;
+    }
+
+    .nav-links a {
+        color: #000000 !important;
+        font-size: 0.9rem !important;
+        letter-spacing: 3px !important;
+        display: block !important;
+    }
+
+    .burger-menu {
+        display: block !important;
+        cursor: pointer !important;
+        z-index: 100000 !important;
+    }
+
+    .burger-menu div {
+        width: 25px !important;
+        height: 2px !important;
+        background-color: #000000 !important;
+        margin: 5px !important;
+        transition: all 0.3s ease !important;
+    }
+}
