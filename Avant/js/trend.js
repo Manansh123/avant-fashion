@@ -2,7 +2,7 @@
 // AVANT TREND.JS — Groq Free API (AI working — DO NOT CHANGE)
 // ================================================================
 
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = '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';
 
 // ================================================================
 // DATA ARCHIVE
@@ -242,7 +242,6 @@ function handleNewPost() {
         };
         saveCustomTrend(trendData);
         renderSavedTrends();
-        alert(`"${trendName}" saved to ${isLoggedIn() ? "your account (permanent)" : "this session only — login to save permanently"}!`);
         closeUploadModal();
         document.querySelector('#uploadModal input[type="text"]').value = '';
         fileInput.value = '';
@@ -372,6 +371,21 @@ async function getAIAdvice(style) {
 // PAGE LOAD
 // ================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Agar guest hai, toh check karo ki refresh hua hai ya nahi
+    if (!isLoggedIn()) {
+        const SESSION_FLAG = 'avant_session_alive';
+        const alive = sessionStorage.getItem(SESSION_FLAG);
+        if (alive) {
+            // Agar pehle se flag hai matlab user ne REFRESH kiya hai -> Guest data clear karo
+            const key = getCurrentUserKey();
+            getStorage().removeItem(key);
+            console.log('🧹 Guest trends cleared successfully on refresh');
+        }
+        // Pehli baar visit par flag set kar do
+        sessionStorage.setItem(SESSION_FLAG, 'true');
+    }
+
+    // 2. Clear hone ke BAAD render aur baaki elements setup honge
     renderSavedTrends();
     hideDeletedBuiltins();
     attachDeleteToBuiltins();

@@ -1,6 +1,6 @@
-require('dotenv').config();
-const express = require('express');
 const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const express = require('express');
 const https = require('https');
 const mongoose = require('mongoose');
 const multer = require('multer');
@@ -14,10 +14,6 @@ app.use(express.static(path.join(__dirname, 'Avant')));
 
 // ================================================================
 // CLOUDINARY CONFIG
-// .env mein ye 3 lines daalo:
-// CLOUDINARY_CLOUD_NAME=your_cloud_name
-// CLOUDINARY_API_KEY=your_api_key
-// CLOUDINARY_API_SECRET=your_api_secret
 // ================================================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -26,8 +22,7 @@ cloudinary.config({
 });
 
 // ================================================================
-// MULTER — memory storage (file disk pe nahi, RAM mein)
-// Cloudinary directly stream mein upload karega
+// MULTER CONFIG
 // ================================================================
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -42,39 +37,34 @@ const upload = multer({
 // ================================================================
 // MONGOOSE MODELS
 // ================================================================
-
-// User Model (existing)
 const userSchema = new mongoose.Schema({
     name:     { type: String, required: true, unique: true, lowercase: true, trim: true },
     email:    { type: String, required: true, unique: true },
     password: { type: String, required: true }
 });
-// Use existing model if already compiled
 const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
 
-// Trend Model (NEW)
 const trendSchema = new mongoose.Schema({
-    userId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    name:        { type: String, required: true },
-    imageUrl:    { type: String, required: true },
-    cloudinaryId:{ type: String },
-    createdAt:   { type: Date, default: Date.now }
+    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    name:         { type: String, required: true },
+    imageUrl:     { type: String, required: true },
+    cloudinaryId: { type: String },
+    createdAt:    { type: Date, default: Date.now }
 });
 const Trend = mongoose.models.Trend || mongoose.model('Trend', trendSchema);
 
-// Wardrobe Model (NEW)
 const wardrobeSchema = new mongoose.Schema({
-    userId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    imageUrl:    { type: String, required: true },
-    cloudinaryId:{ type: String },
-    createdAt:   { type: Date, default: Date.now }
+    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    imageUrl:     { type: String, required: true },
+    cloudinaryId: { type: String },
+    createdAt:    { type: Date, default: Date.now }
 });
 const WardrobeItem = mongoose.models.WardrobeItem || mongoose.model('WardrobeItem', wardrobeSchema);
 
 // ================================================================
 // DB CONNECTION
 // ================================================================
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/AvantDB')
     .then(() => console.log('✅ MongoDB Connected!'))
     .catch(err => console.log('❌ DB Error:', err.message));
 
@@ -98,20 +88,8 @@ function uploadToCloudinary(buffer, folder) {
 }
 
 // ================================================================
-// AUTH MIDDLEWARE — user ID nikalne ke liye
-// Simple: username from header ya body se match karo
-// (JWT nahi hai abhi, isliye username based auth)
-// ================================================================
-async function getUserFromRequest(req) {
-    const userName = req.headers['x-username'] || req.body.userName;
-    if (!userName) return null;
-    return await UserModel.findOne({ name: userName.toLowerCase() });
-}
-
-// ================================================================
 // ROUTES
 // ================================================================
-
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'Avant', 'index.html'));
 });
@@ -145,9 +123,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ================================================================
-// PHASE 3 ROUTE 1: TREND UPLOAD
-// Guest   → Cloudinary pe upload, sirf URL return (no DB save)
-// LoggedIn → Cloudinary + MongoDB dono mein save
+// TREND UPLOAD ROUTES
 // ================================================================
 app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
     try {
@@ -158,11 +134,9 @@ app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
 
         console.log(`📸 Trend upload: "${trendName}" by ${userName || 'guest'}`);
 
-        // Cloudinary pe upload (dono cases mein)
         const cloudResult = await uploadToCloudinary(req.file.buffer, 'trends');
         console.log('✅ Cloudinary upload success:', cloudResult.secure_url);
 
-        // Check: logged-in user hai?
         let savedToDb = false;
         if (userName) {
             const user = await UserModel.findOne({ name: userName.toLowerCase() });
@@ -192,9 +166,6 @@ app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
     }
 });
 
-// ================================================================
-// PHASE 3 ROUTE 2: GET USER'S SAVED TRENDS (for logged-in users)
-// ================================================================
 app.get('/api/my-trends', async (req, res) => {
     try {
         const userName = req.headers['x-username'];
@@ -210,9 +181,6 @@ app.get('/api/my-trends', async (req, res) => {
     }
 });
 
-// ================================================================
-// PHASE 3 ROUTE 3: DELETE SAVED TREND
-// ================================================================
 app.delete('/api/my-trends/:id', async (req, res) => {
     try {
         const userName = req.headers['x-username'];
@@ -224,7 +192,6 @@ app.delete('/api/my-trends/:id', async (req, res) => {
         const trend = await Trend.findOne({ _id: req.params.id, userId: user._id });
         if (!trend) return res.status(404).json({ success: false, message: "Trend not found" });
 
-        // Cloudinary se bhi delete karo
         if (trend.cloudinaryId) {
             await cloudinary.uploader.destroy(trend.cloudinaryId);
         }
@@ -237,9 +204,7 @@ app.delete('/api/my-trends/:id', async (req, res) => {
 });
 
 // ================================================================
-// PHASE 3 ROUTE 4: WARDROBE UPLOAD
-// Guest   → Cloudinary URL return, no DB
-// LoggedIn → Cloudinary + MongoDB
+// WARDROBE UPLOAD ROUTES
 // ================================================================
 app.post('/api/upload-wardrobe', upload.single('image'), async (req, res) => {
     try {
@@ -287,9 +252,6 @@ app.post('/api/upload-wardrobe', upload.single('image'), async (req, res) => {
     }
 });
 
-// ================================================================
-// PHASE 3 ROUTE 5: GET USER'S WARDROBE
-// ================================================================
 app.get('/api/my-wardrobe', async (req, res) => {
     try {
         const userName = req.headers['x-username'];
@@ -305,9 +267,6 @@ app.get('/api/my-wardrobe', async (req, res) => {
     }
 });
 
-// ================================================================
-// PHASE 3 ROUTE 6: DELETE WARDROBE ITEM
-// ================================================================
 app.delete('/api/my-wardrobe/:id', async (req, res) => {
     try {
         const userName = req.headers['x-username'];
@@ -330,62 +289,176 @@ app.delete('/api/my-wardrobe/:id', async (req, res) => {
     }
 });
 
-// Static pages
+// ================================================================
+// CLEAN ROUTE: HANDLED DIRECTLY ON FRONTEND VIA CLIENT SCRIPT (GROQ)
+// ================================================================
+app.post('/api/style-advice', (req, res) => {
+    res.json({ success: true, message: "Routing managed securely on the frontend loop." });
+});
+
+// OUTFIT BUILDER LOGIC (POLLINATIONS)
+app.post('/api/generate-outfit-logic', async (req, res) => {
+    try {
+        const { item, aesthetic, color } = req.body;
+        if (!item || !aesthetic || !color) {
+            return res.status(400).json({ success: false, message: "Missing item, aesthetic, or color" });
+        }
+        const textPrompt = `Based on these details (Item: ${item}, Style: ${aesthetic}, Color: ${color}), write a 1-line caption explaining why this outfit matches the trend. Keep it clean, no hashtags, no markdown.`;
+        const encodedTextTarget = encodeURIComponent(textPrompt);
+        const options = {
+            hostname: 'text.pollinations.ai',
+            path: `/${encodedTextTarget}`,
+            method: 'GET',
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 8000
+        };
+        const apiRequest = https.request(options, (apiResponse) => {
+            let buffer = '';
+            apiResponse.on('data', chunk => buffer += chunk);
+            apiResponse.on('end', () => {
+                if (buffer.trim().length > 5) {
+                    res.json({ success: true, caption: buffer.trim() });
+                } else {
+                    res.json({ success: true, caption: `Perfect choice! This ${color} ${item} captures the pure essence of ${aesthetic} design.` });
+                }
+            });
+        });
+        apiRequest.on('error', () => {
+            res.json({ success: true, caption: `Perfect choice! This ${color} ${item} captures the pure essence of ${aesthetic} design.` });
+        });
+        apiRequest.end();
+    } catch (err) {
+        res.json({ success: true, caption: "Looks flawless. Ready to wear." });
+    }
+});
+
+// Catch-all static pages route
 app.get('/:page', (req, res) => {
     res.sendFile(path.join(__dirname, 'Avant', req.params.page));
 });
+// ================================================================
+// PHASE 4 ROUTES — APPEND AT BOTTOM OF index.js
+// DO NOT touch anything above this block
+// ================================================================
+
+// ── ROUTE 1: OUTFIT LOGIC (caption + shopping list) ─────────────
+app.post('/api/generate-outfit-logic', async (req, res) => {
+    const {
+        item            = 'outfit',
+        color           = 'neutral',
+        fabric          = 'cotton',
+        aesthetic       = 'minimal',
+        occasion        = 'casual',
+        weather         = 'mild',
+        footwear        = 'sneakers',
+        additionalDetails = ''
+    } = req.body;
+
+    // Short prompt — safe for Pollinations text API
+    const imagePrompt = `${aesthetic} ${item}, ${color} ${fabric}, editorial fashion, studio lighting`;
+
+    const textPrompt = `Fashion stylist for AVANT. Outfit: ${color} ${fabric} ${item}, ${aesthetic} aesthetic, ${occasion}, ${footwear}. ${additionalDetails}
+Return EXACTLY this format only:
+CAPTION: [one poetic editorial line, max 15 words]
+ITEMS: [5 comma-separated shopping items]`;
+
+    let caption      = `A ${color} ${item} in ${aesthetic} style — made for ${occasion}.`;
+    let shoppingItems = [item, footwear, `${color} accessories`, `${fabric} layer`, 'minimal watch'];
+
+    try {
+        const rawText = await new Promise((resolve, reject) => {
+            const request = https.request({
+                hostname: 'text.pollinations.ai',
+                path: '/' + encodeURIComponent(textPrompt),
+                method: 'GET',
+                headers: { 'User-Agent': 'AVANT-App/1.0', Accept: 'text/plain' },
+                timeout: 18000
+            }, (response) => {
+                let data = '';
+                response.on('data', chunk => data += chunk);
+                response.on('end', () => data.trim().length > 5 ? resolve(data.trim()) : reject(new Error('Empty')));
+            });
+            request.on('error', reject);
+            request.on('timeout', () => { request.destroy(); reject(new Error('Timeout')); });
+            request.end();
+        });
+
+        const captionMatch = rawText.match(/CAPTION:\s*(.+)/i);
+        if (captionMatch?.[1]?.trim().length > 3) caption = captionMatch[1].trim();
+
+        const itemsMatch = rawText.match(/ITEMS:\s*(.+)/i);
+        if (itemsMatch?.[1]?.trim().length > 3)
+            shoppingItems = itemsMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+
+        console.log('✅ Outfit logic OK | Caption:', caption);
+    } catch (err) {
+        console.warn('⚠️ Text API fallback:', err.message);
+    }
+
+    res.json({ success: true, imagePrompt, caption, shoppingItems });
+});
+
+
+// ── ROUTE 2: IMAGE PROXY ─────────────────────────────────────────
+// Browser requests /api/proxy-image?prompt=xxx
+// Server fetches from Pollinations (waits up to 90s)
+// If Pollinations fails → redirects to Unsplash fashion photo
+// ────────────────────────────────────────────────────────────────
+app.get('/api/proxy-image', async (req, res) => {
+    const prompt    = (req.query.prompt || 'fashion editorial').trim();
+    const width     = req.query.width  || '512';
+    const height    = req.query.height || '640';
+
+    const pollinationsUrl =
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+        `?width=${width}&height=${height}&nologo=true`;
+
+    console.log('🖼 Proxy image request:', prompt.substring(0, 60));
+
+    try {
+        // AbortController for 90-second hard timeout
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), 90000);
+
+        const imageRes = await fetch(pollinationsUrl, {
+            signal:  controller.signal,
+            headers: { 'User-Agent': 'AVANT-App/1.0' }
+        });
+        clearTimeout(timeoutId);
+
+        if (!imageRes.ok) throw new Error(`Pollinations HTTP ${imageRes.status}`);
+
+        const contentType = imageRes.headers.get('content-type') || '';
+        if (!contentType.includes('image')) throw new Error('Non-image response from Pollinations');
+
+        // Stream image back to browser
+        const buffer = await imageRes.arrayBuffer();
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.send(Buffer.from(buffer));
+
+        console.log('✅ Proxy image delivered | size:', buffer.byteLength, 'bytes');
+
+    } catch (err) {
+        console.warn('⚠️ Pollinations proxy failed:', err.message, '→ Unsplash fallback');
+
+        // Unsplash instant fallback — real fashion photo, no API key needed
+        const keywords = prompt.split(',').slice(0, 2)
+            .join(' ').replace(/[^a-zA-Z0-9 ]/g, '').trim()
+            .split(' ').filter(Boolean).slice(0, 3).join(',');
+
+        const unsplashUrl = `https://source.unsplash.com/${width}x${height}/?fashion,${keywords || 'style'}`;
+        res.redirect(302, unsplashUrl);
+    }
+});
 
 // ================================================================
-// SERVER
+// END OF PHASE 4 ROUTES
+// ================================================================
+
+
+// ================================================================
+// SERVER INITIALIZATION
 // ================================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Avant running at http://localhost:${PORT}`));
-
-// ================================================================
-// POLLINATIONS AI
-// ================================================================
-function fetchFromPollinations(styleType) {
-    return new Promise((resolve, reject) => {
-        const prompt = `List exactly 5 styling tips for ${styleType} fashion aesthetic in 2026. Number each tip from 1 to 5. Write each tip on a new line. Keep each tip under 15 words. Only output the 5 numbered tips, nothing else.`;
-        const encodedPrompt = encodeURIComponent(prompt);
-        const options = {
-            hostname: 'text.pollinations.ai',
-            path: `/${encodedPrompt}`,
-            method: 'GET',
-            headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/plain' },
-            timeout: 20000
-        };
-        const req = https.request(options, (response) => {
-            let data = '';
-            response.on('data', chunk => data += chunk);
-            response.on('end', () => {
-                if (data && data.trim().length > 10) resolve(data.trim());
-                else reject(new Error('Empty response from Pollinations'));
-            });
-        });
-        req.on('error', reject);
-        req.on('timeout', () => { req.destroy(); reject(new Error('Pollinations timeout')); });
-        req.end();
-    });
-}
-
-app.post('/api/style-advice', async (req, res) => {
-    const { styleType } = req.body;
-    console.log(`🎨 AI request: "${styleType}"`);
-    try {
-        const text = await fetchFromPollinations(styleType);
-        res.json({ success: true, isAI: true, advice: text });
-    } catch (error) {
-        console.error(`❌ Pollinations failed:`, error.message);
-        const backups = {
-            "Eclectic Grandpa": "1. Layer a vintage cardigan over a collared shirt.\n2. Mix patterned sweaters with earth-tone trousers.\n3. Wear an oversized blazer with a knit vest and retro glasses.\n4. Combine stripes and checks with oversized outerwear.\n5. Accessorize with old-school frames and a structured tote.",
-            "Streetwear": "1. Pair an oversized hoodie with cargo pants and chunky sneakers.\n2. Layer a graphic tee under a flannel with baggy jeans.\n3. Rock a neutral tracksuit with a crossbody bag and cap.\n4. Style a puffer jacket with joggers and high-top sneakers.\n5. Try denim-on-denim with bold sneakers and a silver chain.",
-            "Y2K Revival": "1. Wear a baby tee with low-rise flared jeans and a mini bag.\n2. Combine a metallic top with cargo pants and tinted sunglasses.\n3. Layer a cropped jacket over a bandeau with wide-leg trousers.\n4. Use glossy fabrics in bold colors with platform shoes.\n5. Style a denim mini skirt with knee-high boots.",
-            "Old Money": "1. Tuck a linen shirt into tailored trousers with loafers.\n2. Wear a neutral blazer over a polo tee with chinos.\n3. Layer a cashmere crewneck over a collared shirt.\n4. Build a monochrome outfit in cream or camel tones.\n5. Add a classic watch and structured leather bag.",
-            "Dark Academia": "1. Wear a brown blazer over a turtleneck with pleated trousers.\n2. Style a long wool coat with knee-high boots and a plaid scarf.\n3. Layer a knit sweater over a checked shirt with Oxford shoes.\n4. Use dark tones like burgundy, forest green, and charcoal.\n5. Carry a leather satchel and wear vintage-inspired frames.",
-            "Gender Fluid": "1. Pair an oversized button-up with wide-leg tailored trousers.\n2. Layer a hoodie under a structured skirt with chunky sneakers.\n3. Mix draped fabrics with sharp blazers for contrast.\n4. Style a longline blazer as a dress with a waist belt.\n5. Combine masculine and feminine silhouettes with bold confidence."
-        };
-        const fallback = backups[styleType] || "1. Start with a neutral base of white, black, or beige.\n2. Add one statement piece that defines the aesthetic.\n3. Choose footwear that matches the energy of the look.\n4. Keep accessories minimal and intentional.\n5. Prioritize fit above everything else.";
-        res.json({ success: true, isAI: false, advice: fallback });
-    }
-});
