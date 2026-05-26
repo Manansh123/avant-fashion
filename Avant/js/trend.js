@@ -2,7 +2,7 @@
 // AVANT TREND.JS — Groq Free API (AI working — DO NOT CHANGE)
 // ================================================================
 
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = '__';
 
 // ================================================================
 // DATA ARCHIVE
