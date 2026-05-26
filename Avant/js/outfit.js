@@ -38,6 +38,14 @@ function showMirrorState(state) {
             r.offsetHeight;
             r.style.animation = '';
             r.style.display   = 'flex';
+            // Animate the whole mirror frame in
+            const frame = document.getElementById('result-frame');
+            if (frame) {
+                frame.classList.remove('reveal-in');
+                void frame.offsetWidth;
+                frame.classList.add('reveal-in');
+                setTimeout(() => frame.classList.remove('reveal-in'), 600);
+            } 
         } else {
             r.style.display = 'none';
         }
@@ -98,7 +106,9 @@ async function generateOutfit() {
         const shortPrompt = data.imagePrompt ||
             `${aesthetic} ${item}, ${color}, editorial fashion, studio lighting`;
 
-        const proxyUrl = `/api/proxy-image?prompt=${encodeURIComponent(shortPrompt)}&width=512&height=640&t=${Date.now()}`;
+        // FIX: URL ke andar '&gender=' ka filter load kiya jo HTML input se target uthayega
+        const targetGender = (document.getElementById('dl-gender')?.value || 'unisex').trim();
+        const proxyUrl = `/api/proxy-image?prompt=${encodeURIComponent(shortPrompt)}&width=768&height=1024&gender=${encodeURIComponent(targetGender)}&t=${Date.now()}`;
 
         currentImageUrl  = proxyUrl;
         currentShopItems = (Array.isArray(data.shoppingItems) && data.shoppingItems.length > 0)
@@ -154,7 +164,7 @@ function _loadProxyImage(proxyUrl) {
         wrap.appendChild(spinner);
     }
     spinner.style.display = 'flex';
-    spinner.innerHTML = `<div class="spin-ring"></div><p class="spin-label">AI IS RENDERING YOUR LOOK<br><span>Generating high fashion details (20-60s)</span></p>`;
+    spinner.innerHTML = `<div class="spin-ring-minimal"></div>`;
 
     imgEl.onload = () => {
         spinner.style.display = 'none';
@@ -162,6 +172,34 @@ function _loadProxyImage(proxyUrl) {
         imgEl.style.opacity    = '1';
         setProgress(100);
         setTimeout(() => setProgress(0), 900);
+
+        // Download icon — inject once
+        if (!wrap.querySelector('.img-download-btn')) {
+            const dlBtn = document.createElement('button');
+            dlBtn.className = 'img-download-btn';
+            dlBtn.title = 'Download look';
+            dlBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+            dlBtn.onclick = (e) => {
+                e.stopPropagation();
+                const a = document.createElement('a');
+                a.href = currentImageUrl;
+                a.download = 'avant-look.jpg';
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            wrap.appendChild(dlBtn);
+        }
+
+        // Whole-box reveal animation
+        const frame = document.getElementById('result-frame');
+        if (frame) {
+            frame.classList.remove('reveal-in');
+            void frame.offsetWidth; // reflow reset
+            frame.classList.add('reveal-in');
+            setTimeout(() => frame.classList.remove('reveal-in'), 600);
+        }
     };
 
     imgEl.onerror = () => {
@@ -172,6 +210,43 @@ function _loadProxyImage(proxyUrl) {
 
     imgEl.src = proxyUrl;
 }
+
+imgEl.onload = () => {
+        spinner.style.display = 'none';
+        imgEl.style.transition = 'opacity 0.7s ease';
+        imgEl.style.opacity    = '1';
+        setProgress(100);
+        setTimeout(() => setProgress(0), 900);
+
+        // Download icon — inject once
+        if (!wrap.querySelector('.img-download-btn')) {
+            const dlBtn = document.createElement('button');
+            dlBtn.className = 'img-download-btn';
+            dlBtn.title = 'Download look';
+            dlBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+            dlBtn.onclick = (e) => {
+                e.stopPropagation();
+                const a = document.createElement('a');
+                a.href = currentImageUrl;
+                a.download = 'avant-look.jpg';
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            wrap.appendChild(dlBtn);
+        }
+
+        // Whole-box reveal animation
+        const frame = document.getElementById('result-frame');
+        if (frame) {
+            frame.classList.remove('reveal-in');
+            void frame.offsetWidth; // reflow reset
+            frame.classList.add('reveal-in');
+            setTimeout(() => frame.classList.remove('reveal-in'), 600);
+        }
+    };
+
 
 // ================================================================
 // CHIPS
@@ -273,6 +348,39 @@ async function saveToCloset() {
         _showToast('Save failed: ' + err.message);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = '↓   Save to Try-On Closet'; }
+    }
+}
+
+// ================================================================
+// SYNC IMAGE TO WARDROBE + REDIRECT
+// ================================================================
+// OUTFIT.JS KE ANDAR IS FUNCTION KO DHUNDH KAR SIRF YEH LINE UPDATE KARO
+async function syncToWardrobeGallery() {
+    if (!currentImageUrl) { _showToast('Generate a look first.'); return; }
+    const btn = document.getElementById('shop-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '↑  UPLOADING...'; }
+
+    try {
+        _showToast('Syncing look to Wardrobe...');
+        const blob = await (await fetch(currentImageUrl)).blob();
+        const fd   = new FormData();
+        fd.append('image', blob, 'avant-outfit.jpg');
+        
+        // FIX: 'avantUserName' ko badal kar 'username' karo kyunki auth.js vahi save karta hai
+        const u = localStorage.getItem('username'); 
+        if (u) fd.append('userName', u);
+
+        const data = await (await fetch('/api/upload-wardrobe', { method: 'POST', body: fd })).json();
+        if (!data.success) throw new Error(data.message);
+
+        // FIX: Cloudinary URL ko local state memory mein temporary set kiya immediate display ke liye
+        localStorage.setItem('avant_latest_uploaded_look', data.imageUrl);
+
+        _showToast('✓ Added to Wardrobe!');
+        setTimeout(() => { window.location.href = 'wardrobe.html'; }, 700);
+    } catch (err) {
+        _showToast('Sync failed: ' + err.message);
+        if (btn) { btn.disabled = false; btn.textContent = '＋  Add to Wardrobe Page'; }
     }
 }
 

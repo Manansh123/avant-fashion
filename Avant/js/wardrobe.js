@@ -11,8 +11,10 @@ const gridContainer = document.getElementById('wardrobe-grid');
 // ================================================================
 // AUTH
 // ================================================================
-function isLoggedIn() { return !!localStorage.getItem('avantUserName'); }
-function getUsername() { return localStorage.getItem('avantUserName') || null; }
+// function isLoggedIn() { return !!localStorage.getItem('avantUserName'); }
+// function getUsername() { return localStorage.getItem('avantUserName') || null; }
+function isLoggedIn() { return !!localStorage.getItem('username'); }
+function getUsername() { return localStorage.getItem('username') || null; }
 
 // ================================================================
 // INIT — Page load pe data load karo

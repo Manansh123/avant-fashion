@@ -851,6 +851,7 @@ h2.section-heading, .tool-text h3 {
 .panel-header {
     margin-bottom: 50px;
     padding-left: 15px;
+    padding-top: 0px;
     border-left: 5px solid #000;
 }
 
@@ -868,6 +869,55 @@ h2.section-heading, .tool-text h3 {
     font-style: italic;
     font-weight: 400;
     display: block;
+}
+
+/* ================================================================
+   OUTFIT LAB — EXTRA UI POLISH
+   ================================================================ */
+
+/* Minimal classy loading ring — no text */
+.spin-ring-minimal {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid #e8e8e8;
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spinRing 0.85s linear infinite;
+}
+@keyframes spinRing {
+    to { transform: rotate(360deg); }
+}
+
+/* Download icon button on image top-right */
+.img-download-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.88);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease, background 0.2s ease;
+    z-index: 15;
+    backdrop-filter: blur(6px);
+}
+.outfit-img-wrap:hover .img-download-btn { opacity: 1; }
+.img-download-btn:hover { background: rgba(0, 0, 0, 0.85); color: #fff; }
+.img-download-btn:hover svg { stroke: #fff; }
+.img-download-btn svg { transition: stroke 0.2s ease; }
+
+/* Mirror frame — entrance animation on result reveal */
+@keyframes mirrorReveal {
+    from { opacity: 0; transform: translateY(18px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0)  scale(1);       }
+}
+.outfit-mirror-frame.reveal-in {
+    animation: mirrorReveal 0.55s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
 /* ----------------------------------------------------------------

@@ -323,29 +323,47 @@ app.get('/api/proxy-image', async (req, res) => {
     const prompt = (req.query.prompt || 'fashion lookbook editorial').trim();
     const width  = req.query.width  || '768';
     const height = req.query.height || '1024';
+    const gender = (req.query.gender || 'unisex').trim();
 
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&model=flux&nologo=true`;
+    const finalizedPrompt = `raw full body photography of a ${gender} model, ${prompt}`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalizedPrompt)}?width=${width}&height=${height}&model=turbo&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
 
     try {
         const controller = new AbortController();
-        const timeoutId  = setTimeout(() => controller.abort(), 45000); // Strict 45s cut-off
+        const timeoutId  = setTimeout(() => controller.abort(), 90000); // 90s safe queue limit
 
         const imageRes = await fetch(pollinationsUrl, {
             signal: controller.signal,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
         });
         clearTimeout(timeoutId);
 
-        if (!imageRes.ok) throw new Error(`HTTP Error ${imageRes.status}`);
+        if (!imageRes.ok) throw new Error(`HTTP Upstream Error Status ${imageRes.status}`);
 
         const buffer = await imageRes.arrayBuffer();
         res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
         res.send(Buffer.from(buffer));
+        console.log('✅ AI Image Generated & Delivered successfully via Route B!');
+
     } catch (err) {
-        console.warn('⚠️ Fallback interface active:', err.message);
-        // Direct redirect to high-end clothing visual model look if Pollinations queues drop
-        res.redirect(302, `https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=${width}&h=${height}&q=80`);
+        console.warn('⚠️ Primary Bypass Queue Dropped, executing Alternative Route...', err.message);
+        
+        // SINGLE CORRECTION BLOCK: Single catch framework resolving double layered fallback safely
+        try {
+            // Tier 2 Fallback: Redirecting to Pollinations general safe production stack
+            const genericPrompt = `editorial fashion magazine full body portrait lookbook style photography of a ${gender} model`;
+            console.log('📡 Route C Triggered: Redirecting to general public cluster...');
+            res.redirect(302, `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=${width}&height=${height}&nologo=true`);
+            
+        } catch (fallbackErr) {
+            console.error('❌ Both AI routes exhausted, deploying absolute Unsplash catalog fallback:', fallbackErr.message);
+            
+            // Tier 3 Fallback: Absolute crash backup layer using a high fashion model asset pool (Not clothes rack hanger)
+            res.redirect(302, `https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=${width}&h=${height}&q=80`);
+        }
     }
 });
 
