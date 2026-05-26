@@ -143,66 +143,34 @@ function _loadProxyImage(proxyUrl) {
     const imgEl = document.getElementById('outfit-img');
     if (!imgEl || !wrap) return;
 
-    // Build / reset the spinner overlay
     let spinner = document.getElementById('img-spinner');
     if (!spinner) {
         spinner = document.createElement('div');
         spinner.id = 'img-spinner';
         Object.assign(spinner.style, {
-            position: 'absolute', inset: '0',
-            background: '#f0f0f0',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: '16px', zIndex: '10'
+            position: 'absolute', inset: '0', background: '#f0f0f0',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: '10'
         });
         wrap.appendChild(spinner);
     }
     spinner.style.display = 'flex';
-    spinner.innerHTML = `
-        <div class="spin-ring"></div>
-        <p class="spin-label">
-            AI IS RENDERING YOUR LOOK<br>
-            <span>Please wait 20–60 seconds</span>
-        </p>`;
+    spinner.innerHTML = `<div class="spin-ring"></div><p class="spin-label">AI IS RENDERING YOUR LOOK<br><span>Generating high fashion details (20-60s)</span></p>`;
 
-    // Reset image state
-    imgEl.onload  = null;
-    imgEl.onerror = null;
-    imgEl.src     = '';
-    imgEl.style.opacity = '0';
-
-    // Set handlers BEFORE src
     imgEl.onload = () => {
         spinner.style.display = 'none';
         imgEl.style.transition = 'opacity 0.7s ease';
         imgEl.style.opacity    = '1';
         setProgress(100);
         setTimeout(() => setProgress(0), 900);
-        console.log('✅ Image displayed successfully');
     };
 
     imgEl.onerror = () => {
-        // Proxy itself failed (very rare — means our server crashed)
-        spinner.innerHTML = `
-            <p style="font-family:'Montserrat',sans-serif;font-size:0.68rem;font-weight:700;
-                letter-spacing:2px;color:#888;text-align:center;line-height:2;padding:0 20px;">
-                SERVER ERROR<br>
-                <span style="font-weight:400;font-size:0.6rem;color:#aaa;">
-                    Restart node server and try again
-                </span>
-            </p>
-            <button onclick="_loadProxyImage('${proxyUrl}')"
-                style="padding:10px 22px;background:#000;color:#fff;border:none;
-                font-family:'Montserrat',sans-serif;font-size:0.65rem;font-weight:700;
-                letter-spacing:3px;cursor:pointer;text-transform:uppercase;">
-                ↻ RETRY
-            </button>`;
+        // Error resolution display layer updates dynamically
+        spinner.innerHTML = `<p style="font-family:'Montserrat',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:2px;color:#c00;text-align:center;line-height:1.8;">AI CLOUD UTILITY BUSY<br><span style="font-weight:400;font-size:0.6rem;color:#aaa;text-transform:none;">The network timed out. Please try again.</span></p><button onclick="_loadProxyImage('${proxyUrl}')" style="padding:10px 22px;background:#000;color:#fff;border:none;font-family:'Montserrat',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;margin-top:5px;">↻ RETRY SEQUENCE</button>`;
         setProgress(0);
-        console.error('❌ Proxy image endpoint failed');
     };
 
     imgEl.src = proxyUrl;
-    console.log('🖼 Loading via proxy:', proxyUrl);
 }
 
 // ================================================================

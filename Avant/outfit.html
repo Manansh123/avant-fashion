@@ -69,6 +69,18 @@
                         </datalist>
                     </div>
 
+                    <!-- 3. Gender -->
+                    <div class="dl-group">
+                        <label>Gender</label>
+                        <input type="text" id="dl-gender" list="genders-list" placeholder="e.g., Male, Female, Unisex"
+                            autocomplete="off">
+                        <datalist id="genders-list">
+                            <option value="Men">
+                            <option value="Women">
+                            <option value="Unisex">
+                        </datalist>
+                    </div>
+
                     <!-- 2. Color -->
                     <div class="dl-group">
                         <label for="dl-color">Color</label>
@@ -346,7 +358,6 @@
                 <div class="result-content" id="result-content" style="display:none;">
                     <div class="outfit-img-wrap">
                         <img src="" id="outfit-img" alt="AI Generated Outfit">
-                        <div class="img-overlay-tag">AVANT CURATED OUTFIT</div>
                     </div>
                     <div class="result-details">
                         <p class="result-caption" id="outfit-caption"

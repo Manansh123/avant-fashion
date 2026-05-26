@@ -423,7 +423,7 @@ h2.section-heading, .tool-text h3 {
 .trends-page .navbar.scrolled .logo-image,
 .trends-page .navbar.scrolled .logo-name-image { filter: invert(0) brightness(1); }
 
-.trends-main { padding: 100px 75px 0; background: #fff; }
+.trends-main { padding: 50px 75px 0; background: #fff; }
 .editorial-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 15px; display: block; }
 
 .matrix-heading {
@@ -843,14 +843,15 @@ h2.section-heading, .tool-text h3 {
    ---------------------------------------------------------------- */
 .stylist-panel {
     flex: 1.15;
-    padding: 70px 70px 80px 70px;
-    border-right: 1px solid #ebebeb;
+    padding: 10px 70px 80px 70px;
     background: #fff;
     overflow-y: auto;
 }
 
 .panel-header {
     margin-bottom: 50px;
+    padding-left: 15px;
+    border-left: 5px solid #000;
 }
 
 .stylist-panel .main-heading {
@@ -859,7 +860,6 @@ h2.section-heading, .tool-text h3 {
     line-height: 0.82;
     letter-spacing: -3px;
     color: #000;
-    margin: 10px 0 0 0;
 }
 
 .stylist-panel .main-heading span {
@@ -1178,19 +1178,19 @@ h2.section-heading, .tool-text h3 {
 }
 
 .action-btn--save:hover {
-    background: #ffffff;
-    color: #000000;
+    background: #000000;
+    color: #fff;
 }
 
 .action-btn--shop {
-    background: #000;
-    color: #fff;
+    background: #ffffff;
+    color: #000000;
     border: 1.5px solid #000;
 }
 
 .action-btn--shop:hover {
-    background: transparent;
-    color: #000;
+    background: #000000;
+    color: #fff;
 }
 
 /* ----------------------------------------------------------------
@@ -1289,12 +1289,11 @@ h2.section-heading, .tool-text h3 {
 
 /* FIX: Image container clips zoom seamlessly */
 .outfit-img-wrap {
-    width: 100%;
     position: relative;
-    background: #111;
     overflow: hidden;
-    height: 380px;
+    height: 540px;      
     flex-shrink: 0;
+    background: #eeeeee;
 }
 
 #outfit-img {

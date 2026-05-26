@@ -289,48 +289,6 @@ app.delete('/api/my-wardrobe/:id', async (req, res) => {
     }
 });
 
-// ================================================================
-// CLEAN ROUTE: HANDLED DIRECTLY ON FRONTEND VIA CLIENT SCRIPT (GROQ)
-// ================================================================
-app.post('/api/style-advice', (req, res) => {
-    res.json({ success: true, message: "Routing managed securely on the frontend loop." });
-});
-
-// OUTFIT BUILDER LOGIC (POLLINATIONS)
-app.post('/api/generate-outfit-logic', async (req, res) => {
-    try {
-        const { item, aesthetic, color } = req.body;
-        if (!item || !aesthetic || !color) {
-            return res.status(400).json({ success: false, message: "Missing item, aesthetic, or color" });
-        }
-        const textPrompt = `Based on these details (Item: ${item}, Style: ${aesthetic}, Color: ${color}), write a 1-line caption explaining why this outfit matches the trend. Keep it clean, no hashtags, no markdown.`;
-        const encodedTextTarget = encodeURIComponent(textPrompt);
-        const options = {
-            hostname: 'text.pollinations.ai',
-            path: `/${encodedTextTarget}`,
-            method: 'GET',
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 8000
-        };
-        const apiRequest = https.request(options, (apiResponse) => {
-            let buffer = '';
-            apiResponse.on('data', chunk => buffer += chunk);
-            apiResponse.on('end', () => {
-                if (buffer.trim().length > 5) {
-                    res.json({ success: true, caption: buffer.trim() });
-                } else {
-                    res.json({ success: true, caption: `Perfect choice! This ${color} ${item} captures the pure essence of ${aesthetic} design.` });
-                }
-            });
-        });
-        apiRequest.on('error', () => {
-            res.json({ success: true, caption: `Perfect choice! This ${color} ${item} captures the pure essence of ${aesthetic} design.` });
-        });
-        apiRequest.end();
-    } catch (err) {
-        res.json({ success: true, caption: "Looks flawless. Ready to wear." });
-    }
-});
 
 // Catch-all static pages route
 app.get('/:page', (req, res) => {
@@ -340,121 +298,56 @@ app.get('/:page', (req, res) => {
 // PHASE 4 ROUTES — APPEND AT BOTTOM OF index.js
 // DO NOT touch anything above this block
 // ================================================================
-
-// ── ROUTE 1: OUTFIT LOGIC (caption + shopping list) ─────────────
-app.post('/api/generate-outfit-logic', async (req, res) => {
-    const {
-        item            = 'outfit',
-        color           = 'neutral',
-        fabric          = 'cotton',
-        aesthetic       = 'minimal',
-        occasion        = 'casual',
-        weather         = 'mild',
-        footwear        = 'sneakers',
-        additionalDetails = ''
-    } = req.body;
-
-    // Short prompt — safe for Pollinations text API
-    const imagePrompt = `${aesthetic} ${item}, ${color} ${fabric}, editorial fashion, studio lighting`;
-
-    const textPrompt = `Fashion stylist for AVANT. Outfit: ${color} ${fabric} ${item}, ${aesthetic} aesthetic, ${occasion}, ${footwear}. ${additionalDetails}
-Return EXACTLY this format only:
-CAPTION: [one poetic editorial line, max 15 words]
-ITEMS: [5 comma-separated shopping items]`;
-
-    let caption      = `A ${color} ${item} in ${aesthetic} style — made for ${occasion}.`;
-    let shoppingItems = [item, footwear, `${color} accessories`, `${fabric} layer`, 'minimal watch'];
-
+// ── ROUTE 1: OUTFIT LOGIC (FIXED PARAMETERS SYNC) ──
+app.post('/api/generate-outfit-logic', (req, res) => {
     try {
-        const rawText = await new Promise((resolve, reject) => {
-            const request = https.request({
-                hostname: 'text.pollinations.ai',
-                path: '/' + encodeURIComponent(textPrompt),
-                method: 'GET',
-                headers: { 'User-Agent': 'AVANT-App/1.0', Accept: 'text/plain' },
-                timeout: 18000
-            }, (response) => {
-                let data = '';
-                response.on('data', chunk => data += chunk);
-                response.on('end', () => data.trim().length > 5 ? resolve(data.trim()) : reject(new Error('Empty')));
-            });
-            request.on('error', reject);
-            request.on('timeout', () => { request.destroy(); reject(new Error('Timeout')); });
-            request.end();
-        });
+        const { item, color, fabric, aesthetic, occasion, weather, footwear, additionalDetails } = req.body;
 
-        const captionMatch = rawText.match(/CAPTION:\s*(.+)/i);
-        if (captionMatch?.[1]?.trim().length > 3) caption = captionMatch[1].trim();
+        // Structured single string logic to command Pollinations to draw 3:4 portrait clothing layout
+        const imagePrompt = `Full length professional lookbook presentation displaying a highly coordinated clothing outfit ensemble. Model wearing a tailored premium ${color || 'neutral'} ${fabric || 'textured'} ${item || 'Garment'} fully embodying the pure details of ${aesthetic || 'minimalist'} style, curated beautifully for ${occasion || 'presentation'} during ${weather || 'clear'} conditions, matching high fashion ${footwear || 'shoes'}. Clean minimal studio background, vertical 3:4 ratio clothing framing, hyper-detailed apparel, no visible human faces or heads.`;
 
-        const itemsMatch = rawText.match(/ITEMS:\s*(.+)/i);
-        if (itemsMatch?.[1]?.trim().length > 3)
-            shoppingItems = itemsMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+        const shoppingItems = [];
+        if (item) shoppingItems.push(`${color || ''} ${fabric || ''} ${item}`.trim());
+        if (footwear) shoppingItems.push(`${color || 'Matching'} ${footwear}`.trim());
 
-        console.log('✅ Outfit logic OK | Caption:', caption);
+        const caption = `The crisp ${color || 'clean'} visual layers matching elements built around a high-end ${aesthetic || 'minimalist'} focus. Calibrated perfectly for ${occasion || 'your presentation'}.`;
+
+        res.json({ success: true, imagePrompt, caption, shoppingItems });
     } catch (err) {
-        console.warn('⚠️ Text API fallback:', err.message);
+        res.status(500).json({ success: false, message: err.message });
     }
-
-    res.json({ success: true, imagePrompt, caption, shoppingItems });
 });
 
-
-// ── ROUTE 2: IMAGE PROXY ─────────────────────────────────────────
-// Browser requests /api/proxy-image?prompt=xxx
-// Server fetches from Pollinations (waits up to 90s)
-// If Pollinations fails → redirects to Unsplash fashion photo
-// ────────────────────────────────────────────────────────────────
+// ── ROUTE 2: IMAGE PROXY (FAST 45s HARD TIMEOUT) ──
 app.get('/api/proxy-image', async (req, res) => {
-    const prompt    = (req.query.prompt || 'fashion editorial').trim();
-    const width     = req.query.width  || '512';
-    const height    = req.query.height || '640';
+    const prompt = (req.query.prompt || 'fashion lookbook editorial').trim();
+    const width  = req.query.width  || '768';
+    const height = req.query.height || '1024';
 
-    const pollinationsUrl =
-        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-        `?width=${width}&height=${height}&nologo=true`;
-
-    console.log('🖼 Proxy image request:', prompt.substring(0, 60));
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&model=flux&nologo=true`;
 
     try {
-        // AbortController for 90-second hard timeout
         const controller = new AbortController();
-        const timeoutId  = setTimeout(() => controller.abort(), 90000);
+        const timeoutId  = setTimeout(() => controller.abort(), 45000); // Strict 45s cut-off
 
         const imageRes = await fetch(pollinationsUrl, {
-            signal:  controller.signal,
-            headers: { 'User-Agent': 'AVANT-App/1.0' }
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
         clearTimeout(timeoutId);
 
-        if (!imageRes.ok) throw new Error(`Pollinations HTTP ${imageRes.status}`);
+        if (!imageRes.ok) throw new Error(`HTTP Error ${imageRes.status}`);
 
-        const contentType = imageRes.headers.get('content-type') || '';
-        if (!contentType.includes('image')) throw new Error('Non-image response from Pollinations');
-
-        // Stream image back to browser
         const buffer = await imageRes.arrayBuffer();
-        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=3600');
         res.send(Buffer.from(buffer));
-
-        console.log('✅ Proxy image delivered | size:', buffer.byteLength, 'bytes');
-
     } catch (err) {
-        console.warn('⚠️ Pollinations proxy failed:', err.message, '→ Unsplash fallback');
-
-        // Unsplash instant fallback — real fashion photo, no API key needed
-        const keywords = prompt.split(',').slice(0, 2)
-            .join(' ').replace(/[^a-zA-Z0-9 ]/g, '').trim()
-            .split(' ').filter(Boolean).slice(0, 3).join(',');
-
-        const unsplashUrl = `https://source.unsplash.com/${width}x${height}/?fashion,${keywords || 'style'}`;
-        res.redirect(302, unsplashUrl);
+        console.warn('⚠️ Fallback interface active:', err.message);
+        // Direct redirect to high-end clothing visual model look if Pollinations queues drop
+        res.redirect(302, `https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=${width}&h=${height}&q=80`);
     }
 });
-
-// ================================================================
-// END OF PHASE 4 ROUTES
-// ================================================================
 
 
 // ================================================================
