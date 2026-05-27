@@ -312,7 +312,7 @@ app.post('/api/generate-outfit-logic', (req, res) => {
 
         const caption = `The crisp ${color || 'clean'} visual layers matching elements built around a high-end ${aesthetic || 'minimalist'} focus. Calibrated perfectly for ${occasion || 'your presentation'}.`;
 
-        res.json({ success: true, imagePrompt, caption, shoppingItems });
+        // res.json({ success: true, imagePrompt, caption, shoppingItems });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

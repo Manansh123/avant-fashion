@@ -118,8 +118,8 @@ async function generateOutfit() {
         const captionEl = document.getElementById('outfit-caption');
         if (captionEl) {
             const c = (data.caption || '').trim();
-            captionEl.textContent = c.length > 5 ? c
-                : `A ${color || 'curated'} ${item || 'look'} in ${aesthetic || 'avant-garde'} style.`;
+            captionEl.textContent = c.length > 5 ? c : 
+                `A ${color || 'curated'} ${item || 'look'} in ${aesthetic || 'avant-garde'} style.`;
         }
         _renderChips(inputChips, currentShopItems);
 
@@ -144,9 +144,6 @@ async function generateOutfit() {
 
 // ================================================================
 // PROXY IMAGE LOADER
-// Requests /api/proxy-image on OUR server.
-// Server waits for Pollinations (up to 90s), falls back to Unsplash.
-// Browser just sees a normal local HTTP request — never times out fast.
 // ================================================================
 function _loadProxyImage(proxyUrl) {
     const wrap  = document.querySelector('.outfit-img-wrap');
@@ -257,13 +254,13 @@ function _renderChips(inputChips, apiItems) {
     el.innerHTML = '';
 
     // 1. Render Input configurations layout
-    inputChips.forEach(val => {
-        if (!val.trim()) return;
-        const c = document.createElement('span');
-        c.className = 'chip chip--input';
-        c.textContent = val.trim();
-        el.appendChild(c);
-    });
+    // inputChips.forEach(val => {
+    //     if (!val.trim()) return;
+    //     const c = document.createElement('span');
+    //     c.className = 'chip chip--input';
+    //     c.textContent = val.trim();
+    //     el.appendChild(c);
+    // });
 
     // 2. Render CLICKABLE individual garments links below the generated image
     if (Array.isArray(apiItems) && apiItems.length > 0) {
@@ -373,14 +370,11 @@ async function syncToWardrobeGallery() {
         const data = await (await fetch('/api/upload-wardrobe', { method: 'POST', body: fd })).json();
         if (!data.success) throw new Error(data.message);
 
-        // FIX: Cloudinary URL ko local state memory mein temporary set kiya immediate display ke liye
-        localStorage.setItem('avant_latest_uploaded_look', data.imageUrl);
-
         _showToast('✓ Added to Wardrobe!');
         setTimeout(() => { window.location.href = 'wardrobe.html'; }, 700);
     } catch (err) {
         _showToast('Sync failed: ' + err.message);
-        if (btn) { btn.disabled = false; btn.textContent = '＋  Add to Wardrobe Page'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Add to Wardrobe Page'; }
     }
 }
 
@@ -391,7 +385,7 @@ function shopThisLook() {
     if (!currentShopItems.length) { _showToast('Generate a look first.'); return; }
     localStorage.setItem('avant_shopping_sync', JSON.stringify(currentShopItems));
     const btn = document.getElementById('shop-btn');
-    if (btn) btn.textContent = '→   REDIRECTING...';
+    if (btn) btn.textContent = 'REDIRECTING...';
     setTimeout(() => { window.location.href = 'shop.html'; }, 250);
 }
 

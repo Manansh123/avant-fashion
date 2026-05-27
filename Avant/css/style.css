@@ -850,9 +850,7 @@ h2.section-heading, .tool-text h3 {
 
 .panel-header {
     margin-bottom: 50px;
-    padding-left: 15px;
-    padding-top: 0px;
-    border-left: 5px solid #000;
+    /* Remove border-left and padding-left from here */
 }
 
 .stylist-panel .main-heading {
@@ -861,6 +859,11 @@ h2.section-heading, .tool-text h3 {
     line-height: 0.82;
     letter-spacing: -3px;
     color: #000;
+    
+    /* ADD THESE THREE LINES HERE */
+    border-left: 5px solid #000;
+    padding-left: 15px;
+    margin-top: 10px; /* Controls spacing between the label and the text */
 }
 
 .stylist-panel .main-heading span {
