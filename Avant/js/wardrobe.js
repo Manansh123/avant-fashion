@@ -11,21 +11,33 @@ const gridContainer = document.getElementById('wardrobe-grid');
 // ================================================================
 // AUTH
 // ================================================================
-// function isLoggedIn() { return !!localStorage.getItem('avantUserName'); }
-// function getUsername() { return localStorage.getItem('avantUserName') || null; }
-function isLoggedIn() { return !!localStorage.getItem('username'); }
-function getUsername() { return localStorage.getItem('username') || null; }
+function isLoggedIn() { return !!localStorage.getItem('avantUserName'); }
+function getUsername() { return localStorage.getItem('avantUserName') || null; }
+// function isLoggedIn() { return !!localStorage.getItem('username'); }
+// function getUsername() { return localStorage.getItem('username') || null; }
 
 // ================================================================
 // INIT — Page load pe data load karo
 // ================================================================
 async function initWardrobe() {
     if (isLoggedIn()) {
-        await loadFromDB();      // User: DB se data aayega (Persistent)
+        await loadFromDB();
     } else {
-        wardrobeImages = [];     // Guest: Array reset (Temporary)
-        console.log("☁️ Guest Mode: Uploads will clear on refresh");
+        wardrobeImages = [];
     }
+
+    // Pick up images synced from Outfit Lab (bridge key)
+    try {
+        const bridge = JSON.parse(localStorage.getItem('avant_wardrobe_bridge') || '[]');
+        if (bridge.length > 0) {
+            localStorage.removeItem('avant_wardrobe_bridge');
+            // Only add items not already loaded from DB (avoids duplicates for logged-in users)
+            const existingUrls = new Set(wardrobeImages.map(i => i.src));
+            const fresh = bridge.filter(i => i.src && !existingUrls.has(i.src));
+            if (fresh.length > 0) wardrobeImages = [...fresh, ...wardrobeImages];
+        }
+    } catch(e) {}
+
     if (gridContainer) renderGrid();
 }
 

@@ -170,6 +170,16 @@ function _loadProxyImage(proxyUrl) {
         setProgress(100);
         setTimeout(() => setProgress(0), 900);
 
+        // Capture loaded image as blob — avoids any re-fetch for download/wardrobe
+        window._avantCapturedBlob = null;
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width  = imgEl.naturalWidth;
+            canvas.height = imgEl.naturalHeight;
+            canvas.getContext('2d').drawImage(imgEl, 0, 0);
+            canvas.toBlob(b => { window._avantCapturedBlob = b; }, 'image/jpeg', 0.92);
+        } catch (e) { console.warn('Canvas capture failed:', e); }
+
         // Download icon — inject once
         if (!wrap.querySelector('.img-download-btn')) {
             const dlBtn = document.createElement('button');
@@ -178,13 +188,19 @@ function _loadProxyImage(proxyUrl) {
             dlBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
             dlBtn.onclick = (e) => {
                 e.stopPropagation();
-                const a = document.createElement('a');
-                a.href = currentImageUrl;
-                a.download = 'avant-look.jpg';
-                a.target = '_blank';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                const blob = window._avantCapturedBlob;
+                if (blob) {
+                    const bUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = bUrl;
+                    a.download = 'avant-look.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(bUrl), 2000);
+                } else {
+                    _showToast('Image still loading, try again in a moment.');
+                }
             };
             wrap.appendChild(dlBtn);
         }
@@ -207,43 +223,6 @@ function _loadProxyImage(proxyUrl) {
 
     imgEl.src = proxyUrl;
 }
-
-imgEl.onload = () => {
-        spinner.style.display = 'none';
-        imgEl.style.transition = 'opacity 0.7s ease';
-        imgEl.style.opacity    = '1';
-        setProgress(100);
-        setTimeout(() => setProgress(0), 900);
-
-        // Download icon — inject once
-        if (!wrap.querySelector('.img-download-btn')) {
-            const dlBtn = document.createElement('button');
-            dlBtn.className = 'img-download-btn';
-            dlBtn.title = 'Download look';
-            dlBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-            dlBtn.onclick = (e) => {
-                e.stopPropagation();
-                const a = document.createElement('a');
-                a.href = currentImageUrl;
-                a.download = 'avant-look.jpg';
-                a.target = '_blank';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
-            wrap.appendChild(dlBtn);
-        }
-
-        // Whole-box reveal animation
-        const frame = document.getElementById('result-frame');
-        if (frame) {
-            frame.classList.remove('reveal-in');
-            void frame.offsetWidth; // reflow reset
-            frame.classList.add('reveal-in');
-            setTimeout(() => frame.classList.remove('reveal-in'), 600);
-        }
-    };
-
 
 // ================================================================
 // CHIPS
@@ -353,28 +332,41 @@ async function saveToCloset() {
 // ================================================================
 // OUTFIT.JS KE ANDAR IS FUNCTION KO DHUNDH KAR SIRF YEH LINE UPDATE KARO
 async function syncToWardrobeGallery() {
-    if (!currentImageUrl) { _showToast('Generate a look first.'); return; }
+    const blob = window._avantCapturedBlob;
+    if (!blob) { _showToast('Generate a look first, then wait for image to fully load.'); return; }
+
     const btn = document.getElementById('shop-btn');
     if (btn) { btn.disabled = true; btn.textContent = '↑  UPLOADING...'; }
 
     try {
         _showToast('Syncing look to Wardrobe...');
-        const blob = await (await fetch(currentImageUrl)).blob();
-        const fd   = new FormData();
+
+        const fd = new FormData();
         fd.append('image', blob, 'avant-outfit.jpg');
-        
-        // FIX: 'avantUserName' ko badal kar 'username' karo kyunki auth.js vahi save karta hai
-        const u = localStorage.getItem('username'); 
+        const u = localStorage.getItem('avantUserName');
         if (u) fd.append('userName', u);
 
-        const data = await (await fetch('/api/upload-wardrobe', { method: 'POST', body: fd })).json();
+        const res  = await fetch('/api/upload-wardrobe', { method: 'POST', body: fd });
+        const data = await res.json();
         if (!data.success) throw new Error(data.message);
+
+       // Bridge image to wardrobe page (works guest + logged-in)
+        try {
+            const prev = JSON.parse(localStorage.getItem('avant_wardrobe_bridge') || '[]');
+            prev.unshift({
+                src:  data.imageUrl,
+                time: data.timestamp || new Date().toLocaleString('en-GB'),
+                id:   data.itemId || null,
+                isDb: !!data.savedToDb
+            });
+            localStorage.setItem('avant_wardrobe_bridge', JSON.stringify(prev.slice(0, 20)));
+        } catch(e) {}
 
         _showToast('✓ Added to Wardrobe!');
         setTimeout(() => { window.location.href = 'wardrobe.html'; }, 700);
     } catch (err) {
         _showToast('Sync failed: ' + err.message);
-        if (btn) { btn.disabled = false; btn.textContent = 'Add to Wardrobe Page'; }
+        if (btn) { btn.disabled = false; btn.textContent = '＋  Add to Wardrobe Page'; }
     }
 }
 
@@ -395,19 +387,48 @@ function shopThisLook() {
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.dl-group input[type="text"]').forEach(input => {
         let saved = '';
-        input.addEventListener('click', function () {
-            saved = this.value;
-            this.value = '';
-            setTimeout(() => this.dispatchEvent(new Event('input', { bubbles: true })), 0);
+        let isSelecting = false;
+
+        // Mousedown: if already has value + focused, reopen list
+        input.addEventListener('mousedown', function (e) {
+            if (document.activeElement === this && this.value) {
+                saved = this.value;
+                this.value = '';
+                isSelecting = true;
+                setTimeout(() => {
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                    isSelecting = false;
+                }, 0);
+            }
         });
+
+        // First focus (tab-in): also clear to show list
+        input.addEventListener('focus', function () {
+            if (this.value && !isSelecting) {
+                saved = this.value;
+                this.value = '';
+                setTimeout(() => this.dispatchEvent(new Event('input', { bubbles: true })), 0);
+            }
+        });
+
+        // Blur: restore if nothing new picked
         input.addEventListener('blur', function () {
             if (!this.value.trim() && saved) this.value = saved;
             saved = '';
         });
+
+        // Change: value confirmed, clear saved
         input.addEventListener('change', () => { saved = ''; });
+
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter')  { e.preventDefault(); this.blur(); generateOutfit(); }
             if (e.key === 'Escape') { this.value = saved; saved = ''; this.blur(); }
+            // Arrow down = reopen list even if value present
+            if (e.key === 'ArrowDown' && this.value && !saved) {
+                saved = this.value;
+                this.value = '';
+                setTimeout(() => this.dispatchEvent(new Event('input', { bubbles: true })), 0);
+            }
         });
     });
 
