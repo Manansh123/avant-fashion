@@ -318,73 +318,164 @@ app.post('/api/generate-outfit-logic', (req, res) => {
     }
 });
 
+
 // ── ROUTE 2: IMAGE PROXY — always pipes through server, never redirects ──
 app.get('/api/proxy-image', async (req, res) => {
     const prompt    = (req.query.prompt || 'fashion lookbook editorial').trim();
-    const width     = req.query.width  || '768';
-    const height    = req.query.height || '1024';
+    const width     = parseInt(req.query.width)  || 768;
+    const height    = parseInt(req.query.height) || 1024;
     const genderRaw = (req.query.gender || '').toLowerCase().trim();
-    const genderTerm = genderRaw === 'men'  || genderRaw === 'male'
-                     ? 'male'
-                     : genderRaw === 'women' || genderRaw === 'female'
-                     ? 'female'
+    const genderTerm = genderRaw === 'men' || genderRaw === 'male' ? 'male'
+                     : genderRaw === 'women' || genderRaw === 'female' ? 'female'
                      : 'person';
 
-    const finalPrompt = `fashion editorial photography, single ${genderTerm} model only, solo full body portrait, ${prompt}, one person only, no extra limbs, no duplicate bodies`;
+    const seed = Math.floor(Math.random() * 999999);
+    const finalPrompt = `fashion editorial photography, single ${genderTerm} model, full body portrait, ${prompt}, clean white studio background, vertical portrait, no face`;
 
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=${width}&height=${height}&model=turbo&nologo=true&seed=${Math.floor(Math.random() * 999999)}&nofeed=true`;
+    console.log('☁️ Cloudflare Workers AI call...');
+    console.log('📝 Prompt:', finalPrompt.slice(0, 80) + '...');
 
-    // Unsplash fallbacks — always returns real images
-    const fallbacks = [
-        `https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=${width}&h=${height}&q=80`,
-        `https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=${width}&h=${height}&q=80`
-    ];
+    const CF_TOKEN   = process.env.CF_TOKEN;
+    const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
 
-    async function pipeFetch(url, timeoutMs) {
-        const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
-        try {
-            const r = await fetch(url, {
-                signal:  ctrl.signal,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-                // No Referer/Origin — avoids Pollinations auth detection
-            });
-            clearTimeout(tid);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const ct = r.headers.get('content-type') || '';
-            if (!ct.startsWith('image/')) throw new Error(`Not an image (got ${ct})`);
-            return { buf: await r.arrayBuffer(), ct };
-        } catch (e) { clearTimeout(tid); throw e; }
+    if (!CF_TOKEN || !CF_ACCOUNT) {
+        console.error('❌ CF_TOKEN ya CF_ACCOUNT_ID missing hai .env mein');
+        return res.status(500).json({ success: false, message: 'Cloudflare credentials missing in .env' });
     }
 
-    try {
-        let result;
+    const cfBody = JSON.stringify({
+        prompt: finalPrompt,
+        num_steps: 8,
+        width:  width,
+        height: height
+    });
 
-        // Try Pollinations first (60s window)
-        try {
-            result = await pipeFetch(pollinationsUrl, 60000);
-            console.log('✅ Pollinations image piped');
-        } catch (e) {
-            console.warn('⚠️ Pollinations blocked/failed:', e.message);
-            // Try Unsplash fallbacks server-side — no redirect to browser
-            try {
-                result = await pipeFetch(fallbacks[0], 12000);
-                console.log('📸 Unsplash fallback A served');
-            } catch (e2) {
-                result = await pipeFetch(fallbacks[1], 12000);
-                console.log('📸 Unsplash fallback B served');
-            }
+    const options = {
+        hostname: 'api.cloudflare.com',
+        path: `/client/v4/accounts/${CF_ACCOUNT}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${CF_TOKEN}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(cfBody)
         }
+    };
 
-        res.setHeader('Content-Type', result.ct || 'image/jpeg');
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
-        res.send(Buffer.from(result.buf));
+    const cfReq = https.request(options, (cfRes) => {
+        const chunks = [];
+        cfRes.on('data', c => chunks.push(c));
+        cfRes.on('end', () => {
+            const buf = Buffer.concat(chunks);
+            const ct  = cfRes.headers['content-type'] || '';
 
-    } catch (err) {
-        console.error('❌ All image sources failed:', err.message);
-        res.status(500).json({ success: false, message: 'Image generation failed: ' + err.message });
-    }
+            console.log('📊 CF Status:', cfRes.statusCode);
+            console.log('📊 CF Content-Type:', ct);
+
+            if (cfRes.statusCode !== 200) {
+                console.error('❌ CF Error:', buf.toString().slice(0, 200));
+                // Picsum fallback
+                return servePicsum(res, seed, width, height);
+            }
+
+            // Case 1: Direct image response
+            if (ct.startsWith('image/')) {
+                console.log('✅ Cloudflare direct image! Bytes:', buf.length);
+                res.setHeader('Content-Type', ct);
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send(buf);
+            }
+
+            // Case 2: JSON with base64
+            try {
+                const json = JSON.parse(buf.toString());
+                if (json.result?.image) {
+                    const imgBuf = Buffer.from(json.result.image, 'base64');
+                    console.log('✅ Cloudflare base64 image! Bytes:', imgBuf.length);
+                    res.setHeader('Content-Type', 'image/png');
+                    res.setHeader('Cache-Control', 'no-store');
+                    return res.send(imgBuf);
+                }
+                console.error('❌ CF JSON no image field:', JSON.stringify(json).slice(0, 200));
+            } catch (e) {
+                console.error('❌ CF parse error:', e.message);
+            }
+
+            // Fallback
+            return servePicsum(res, seed, width, height);
+        });
+    });
+
+    cfReq.on('error', (e) => {
+        console.error('❌ CF request error:', e.message);
+        servePicsum(res, seed, width, height);
+    });
+
+    cfReq.setTimeout(60000, () => {
+        cfReq.destroy();
+        console.error('❌ CF timeout');
+        servePicsum(res, seed, width, height);
+    });
+
+    cfReq.write(cfBody);
+    cfReq.end();
 });
+
+
+// Picsum helper — sirf last resort
+function servePicsum(res, seed, width, height) {
+    console.log('📸 Unsplash fashion fallback...');
+    
+    // Fashion specific Unsplash photo IDs - yeh sab fashion/outfit images hain
+    const fashionPhotos = [
+        'photo-1539109136881-3be0616acf4b', // fashion model street
+        'photo-1515886657613-9f3515b0c78f', // fashion model studio
+        'photo-1469334031218-e382a71b716b', // fashion editorial
+        'photo-1558618666-fcd25c85cd64', // outfit flat lay
+        'photo-1496747611176-843222e1e57c', // model walking
+        'photo-1509631179647-0177331693ae', // fashion shoot
+        'photo-1581044777550-4cfa60707c03', // editorial fashion
+        'photo-1475180098004-ca77a66827be', // model outfit
+        'photo-1434389677669-e08b4cac3105', // fashion street
+        'photo-1485968579580-b6d095142e6e', // model lookbook
+    ];
+    
+    // Seed se consistent but varied selection
+    const photoId = fashionPhotos[seed % fashionPhotos.length];
+    const url = `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${width}&h=${height}&q=80`;
+    
+    console.log('📸 Using Unsplash fashion photo:', photoId);
+    
+    https.get(url, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (pRes) => {
+        // Unsplash redirects karta hai - follow karna padega
+        if (pRes.statusCode === 301 || pRes.statusCode === 302) {
+            const redirectUrl = pRes.headers.location;
+            https.get(redirectUrl, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (rRes) => {
+                const chunks = [];
+                rRes.on('data', c => chunks.push(c));
+                rRes.on('end', () => {
+                    res.setHeader('Content-Type', 'image/jpeg');
+                    res.setHeader('Cache-Control', 'no-store');
+                    res.send(Buffer.concat(chunks));
+                });
+            }).on('error', () => serveHardcodedFallback(res));
+            return;
+        }
+        
+        const chunks = [];
+        pRes.on('data', c => chunks.push(c));
+        pRes.on('end', () => {
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.setHeader('Cache-Control', 'no-store');
+            res.send(Buffer.concat(chunks));
+        });
+    }).on('error', () => serveHardcodedFallback(res));
+}
+
+// Last last resort - agar Unsplash bhi fail ho
+function serveHardcodedFallback(res) {
+    console.log('⚠️ All fallbacks failed');
+    res.status(500).json({ success: false, message: 'Image generation failed. Please retry.' });
+}
 
 
 // ================================================================
