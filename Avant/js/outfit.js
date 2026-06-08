@@ -138,7 +138,7 @@ async function generateOutfit() {
         _showToast('Failed: ' + err.message);
     } finally {
         if (synthBtn) synthBtn.disabled = false;
-        if (btnText)  btnText.textContent = '✦   SYNTHESIZE LOOK   ✦';
+        if (btnText) btnText.innerHTML = '✦ &nbsp; SYNTHESIZE LOOK &nbsp; ✦';
     }
 }
 
