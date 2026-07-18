@@ -84,13 +84,16 @@ async function generateOutfit() {
     setProgress(12);
     showMirrorState('loading');
 
+    // gender read early — sent to backend now, not just used for the image proxy
+    const targetGender = (document.getElementById('dl-gender')?.value || 'unisex').trim();
+
     try {
         // ── Step 1: Get caption + shopping list from backend ───────
         setProgress(28);
         const res = await fetch('/api/generate-outfit-logic', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ item, color, fabric, aesthetic, occasion, weather, footwear, additionalDetails: mood })
+            body: JSON.stringify({ item, color, fabric, aesthetic, occasion, weather, footwear, gender: targetGender, additionalDetails: mood })
         });
         setProgress(55);
 
@@ -106,8 +109,7 @@ async function generateOutfit() {
         const shortPrompt = data.imagePrompt ||
             `${aesthetic} ${item}, ${color}, editorial fashion, studio lighting`;
 
-        // FIX: URL ke andar '&gender=' ka filter load kiya jo HTML input se target uthayega
-        const targetGender = (document.getElementById('dl-gender')?.value || 'unisex').trim();
+        // gender already read above (targetGender), sent to backend + used here for image proxy
         const proxyUrl = `/api/proxy-image?prompt=${encodeURIComponent(shortPrompt)}&width=768&height=1024&gender=${encodeURIComponent(targetGender)}&t=${Date.now()}`;
 
         currentImageUrl  = proxyUrl;

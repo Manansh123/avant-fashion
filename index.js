@@ -298,361 +298,170 @@ app.get('/:page', (req, res) => {
 // PHASE 4 ROUTES — APPEND AT BOTTOM OF index.js
 // DO NOT touch anything above this block
 // ================================================================
-// ── ROUTE 1: OUTFIT LOGIC (FIXED PARAMETERS SYNC) ──
-app.post('/api/generate-outfit-logic', (req, res) => {
+// ── FALLBACK: MINIMAL SAFE OUTFIT LOGIC (used only if Groq totally fails) ──
+// Old giant hardcoded pairing tables removed — Groq is confirmed working,
+// this only exists so the app doesn't crash if Groq/key is ever down.
+function hardcodedFallback(req, res) {
     try {
-        const { item, color, fabric, aesthetic, occasion, weather, footwear, additionalDetails } = req.body;
+        const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
 
-        // ================================================================
-        // COMPLETE OUTFITS — No pairing needed, only accessories
-        // ================================================================
-        const completeOutfits = {
-            'Co-ord Set': {
-                description: 'Complete matching set',
-                accessories: ['Minimal chain or pendant', 'Clean white sneakers or loafers', 'Small crossbody bag', 'Sunglasses'],
-                footwear: 'White Sneakers or Loafers or Mules'
-            },
-            'Saree': {
-                description: 'Complete traditional outfit',
-                accessories: ['Statement jhumkas or chandbalis', 'Bangles or kada', 'Potli bag or clutch', 'Bindi'],
-                footwear: 'Heels or Kolhapuri Sandals or Juttis'
-            },
-            'Dress': {
-                description: 'Complete outfit',
-                accessories: ['Delicate necklace', 'Small handbag or clutch', 'Minimal earrings', 'Belt to cinch waist (optional)'],
-                footwear: 'Block Heels or Ballet Flats or White Sneakers'
-            },
-            'Kurta': {
-                description: 'Semi-complete — pairs with bottom',
-                bottom: ['Palazzo', 'Straight Pants', 'Churidar', 'Dhoti Pants'],
-                accessories: ['Oxidised earrings', 'Potli bag', 'Kolhapuri sandals or Juttis'],
-                footwear: 'Juttis or Kolhapuri Sandals'
-            },
-        };
+        const genderNorm = (gender || 'unisex').toLowerCase().trim();
+        const neutralBottom   = 'Straight Fit Pants';
+        const neutralFootwear = footwear || 'White Sneakers';
+        const neutralAcc      = 'Minimal watch, Simple chain';
 
-        // ================================================================
-        // BOTTOM PAIRING — Multiple options per item
-        // ================================================================
-        const bottomPairing = {
-            // Basic Tees
-            'Oversized T-Shirt': [
-                'Baggy Jeans', 'Cargo Pants', 'Parachute Pants',
-                'Biker Shorts', 'Wide Leg Joggers', 'Track Pants'
-            ],
-            'Graphic Tee': [
-                'Straight Fit Jeans', 'Cargo Pants', 'Joggers',
-                'Baggy Jeans', 'Chinos', 'Denim Shorts'
-            ],
-            'Plain Tee': [
-                'Chinos', 'Slim Fit Jeans', 'Trousers',
-                'Linen Pants', 'Cargo Pants', 'Denim Shorts'
-            ],
-            'Polo T-Shirt': [
-                'Chinos', 'Tailored Shorts', 'Slim Fit Jeans',
-                'Linen Pants', 'Bermuda Shorts', 'Trousers'
-            ],
-            'Tank Top': [
-                'Cargo Shorts', 'Linen Pants', 'Wide Leg Jeans',
-                'Biker Shorts', 'Mini Skirt', 'Denim Shorts'
-            ],
-            'Crop Top': [
-                'High Waist Jeans', 'Mini Skirt', 'Wide Leg Pants',
-                'Cargo Pants', 'Maxi Skirt', 'Palazzo'
-            ],
+        const outfitDescription = `${color} ${fabric || ''} ${item} paired with ${neutralBottom}`.trim();
+        const imagePrompt = `High fashion editorial lookbook photography. Complete outfit: ${outfitDescription}. Footwear: ${neutralFootwear}. Accessories: ${neutralAcc}. Style aesthetic: ${aesthetic || 'modern minimal'}. Occasion: ${occasion || 'street style'}. Weather: ${weather || 'clear'}. Clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face.`;
 
-            // Shirts
-            'Flannel Shirt': [
-                'Black Skinny Jeans', 'Dark Denim', 'Cargo Pants',
-                'Chinos', 'Straight Jeans', 'Joggers'
-            ],
-            'Oversized Shirt': [
-                'Biker Shorts', 'Straight Jeans', 'Linen Shorts',
-                'Mini Skirt', 'Slim Trousers', 'Cycling Shorts'
-            ],
-
-            // Hoodies
-            'Hoodie': [
-                'Sweatpants', 'Cargo Pants', 'Straight Jeans',
-                'Joggers', 'Track Pants', 'Biker Shorts'
-            ],
-            'Zip Hoodie': [
-                'Joggers', 'Straight Jeans', 'Cargo Pants',
-                'Chinos', 'Track Pants', 'Sweatpants'
-            ],
-            'Oversized Hoodie': [
-                'Biker Shorts', 'Cargo Pants', 'Leggings',
-                'Cycling Shorts', 'Mini Skirt', 'Slim Jeans'
-            ],
-
-            // Jackets
-            'Varsity Jacket': [
-                'Straight Jeans', 'Joggers', 'Chinos',
-                'Track Pants', 'Cargo Pants', 'Mini Skirt'
-            ],
-            'Bomber Jacket': [
-                'Slim Fit Jeans', 'Cargo Pants', 'Chinos',
-                'Track Pants', 'Straight Jeans', 'Joggers'
-            ],
-            'Denim Jacket': [
-                'Black Jeans', 'Chinos', 'Floral Dress (layered)',
-                'Mini Skirt', 'White Jeans', 'Cargo Pants'
-            ],
-            'Leather Jacket': [
-                'Black Skinny Jeans', 'Dark Trousers', 'Straight Jeans',
-                'Leather Pants (tonal)', 'Mini Skirt', 'Cargo Pants'
-            ],
-            'Blazer': [
-                'Tailored Trousers', 'Wide Leg Pants', 'Straight Jeans',
-                'Mini Skirt', 'Cigarette Pants', 'Pleated Trousers'
-            ],
-
-            // Bottoms (reverse — suggest top)
-            'Cargo Pants': [
-                'Graphic Tee', 'Oversized Shirt', 'Crop Top',
-                'Fitted Tank Top', 'Zip Hoodie', 'Cropped Sweatshirt'
-            ],
-            'Baggy Jeans': [
-                'Fitted Tee', 'Crop Top', 'Hoodie',
-                'Corset Top', 'Tank Top', 'Oversized Shirt'
-            ],
-            'Straight Fit Jeans': [
-                'Plain Tee', 'Blazer', 'Flannel Shirt',
-                'Polo', 'Crop Top', 'Knit Top'
-            ],
-            'Wide Leg Jeans': [
-                'Crop Top', 'Fitted Turtleneck', 'Corset Top',
-                'Knit Vest', 'Bralette with sheer top', 'Fitted Tank'
-            ],
-            'Parachute Pants': [
-                'Plain Tee', 'Zip Hoodie', 'Crop Top',
-                'Tank Top', 'Graphic Tee', 'Cropped Jacket'
-            ],
-            'Joggers': [
-                'Hoodie', 'Oversized Tee', 'Zip Hoodie',
-                'Fitted Tank', 'Cropped Sweatshirt', 'Jersey Top'
-            ],
-            'Mini Skirt': [
-                'Crop Top', 'Fitted Tee', 'Knotted Shirt',
-                'Corset Top', 'Sheer Top', 'Oversized Blazer'
-            ],
-        };
-
-        // ================================================================
-        // FOOTWEAR PAIRING — Multiple options per item
-        // ================================================================
-        const footwearPairing = {
-            'Oversized T-Shirt':  ['Chunky Sneakers', 'Air Force 1s', 'Jordans', 'Slides', 'Skate Shoes'],
-            'Graphic Tee':        ['White Sneakers', 'Vans', 'Converse', 'Skate Shoes', 'Low Top Sneakers'],
-            'Plain Tee':          ['White Sneakers', 'Loafers', 'Slip Ons', 'Clean Runners', 'Boat Shoes'],
-            'Polo T-Shirt':       ['Loafers', 'Boat Shoes', 'Clean White Sneakers', 'Derby Shoes', 'Moccasins'],
-            'Tank Top':           ['Slides', 'Flip Flops', 'Chunky Sneakers', 'Sandals', 'Running Shoes'],
-            'Crop Top':           ['Platform Sneakers', 'Block Heels', 'Mary Janes', 'Kitten Heels', 'White Sneakers'],
-            'Flannel Shirt':      ['Combat Boots', 'Chelsea Boots', 'Ankle Boots', 'Chunky Sneakers', 'Work Boots'],
-            'Oversized Shirt':    ['Loafers', 'Mules', 'Sneakers', 'Ballet Flats', 'Ankle Boots'],
-            'Hoodie':             ['Slides', 'High Tops', 'Chunky Sneakers', 'Running Shoes', 'Jordans'],
-            'Zip Hoodie':         ['High Tops', 'Chunky Sneakers', 'Running Shoes', 'Slides', 'Low Tops'],
-            'Oversized Hoodie':   ['Chunky Sneakers', 'Slides', 'Ugg Boots', 'Platform Sneakers', 'Air Force 1s'],
-            'Varsity Jacket':     ['High Tops', 'Jordans', 'Chunky Sneakers', 'Air Force 1s', 'Retro Runners'],
-            'Bomber Jacket':      ['White Sneakers', 'Chelsea Boots', 'High Tops', 'Derby Shoes', 'Loafers'],
-            'Denim Jacket':       ['White Sneakers', 'Ankle Boots', 'Converse', 'Chelsea Boots', 'Ballet Flats'],
-            'Leather Jacket':     ['Chelsea Boots', 'Combat Boots', 'Chunky Sneakers', 'Ankle Boots', 'Moto Boots'],
-            'Blazer':             ['Oxford Shoes', 'Loafers', 'Pointed Heels', 'Derby Shoes', 'Mules'],
-            'Kurta':              ['Juttis', 'Kolhapuri Sandals', 'Ethnic Sandals', 'Mojaris', 'Block Heels'],
-            'Cargo Pants':        ['Chunky Sneakers', 'Combat Boots', 'Jordans', 'High Tops', 'Work Boots'],
-            'Baggy Jeans':        ['Jordans', 'Chunky Sneakers', 'High Tops', 'Platform Shoes', 'Air Force 1s'],
-            'Straight Fit Jeans': ['White Sneakers', 'Loafers', 'Chelsea Boots', 'Oxford Shoes', 'Ankle Boots'],
-            'Wide Leg Jeans':     ['Platform Shoes', 'Block Heels', 'Boots', 'Mules', 'Kitten Heels'],
-            'Mini Skirt':         ['Mary Janes', 'Platform Sneakers', 'Kitten Heels', 'Ankle Boots', 'Ballet Flats'],
-            'Joggers':            ['Slides', 'Running Shoes', 'High Tops', 'Chunky Sneakers', 'Low Tops'],
-            'Parachute Pants':    ['Chunky Sneakers', 'High Tops', 'Air Force 1s', 'Jordans', 'Slides'],
-        };
-
-        // ================================================================
-        // ACCESSORIES — Multiple options per item
-        // ================================================================
-        const accPairing = {
-            'Oversized T-Shirt':  ['Baseball cap', 'Minimal silver chain', 'Crossbody bag', 'Bucket hat'],
-            'Graphic Tee':        ['Crossbody bag', 'Snapback', 'Wristband', 'Tote bag'],
-            'Plain Tee':          ['Minimal watch', 'Clean tote', 'Stud earrings', 'Simple bracelet'],
-            'Polo T-Shirt':       ['Classic watch', 'Belt', 'Clean tote', 'Aviator sunglasses'],
-            'Crop Top':           ['Layered necklaces', 'Hoop earrings', 'Mini bag', 'Sunglasses'],
-            'Flannel Shirt':      ['Watch', 'Beanie', 'Canvas tote', 'Simple ring'],
-            'Oversized Shirt':    ['Belt (to cinch)', 'Mini bag', 'Hoop earrings', 'Sunglasses'],
-            'Hoodie':             ['Beanie', 'Backpack', 'Simple chain', 'Cap'],
-            'Zip Hoodie':         ['Cap', 'Crossbody bag', 'Simple chain', 'Beanie'],
-            'Oversized Hoodie':   ['Beanie', 'Mini backpack', 'Hoop earrings', 'Phone bag'],
-            'Varsity Jacket':     ['Snapback', 'Gym bag', 'Simple chain', 'Wristband'],
-            'Bomber Jacket':      ['Aviator sunglasses', 'Small backpack', 'Chain necklace', 'Cap'],
-            'Denim Jacket':       ['Hoop earrings', 'Tote bag', 'Layered necklaces', 'Sunglasses'],
-            'Leather Jacket':     ['Silver chain', 'Dark sunglasses', 'Biker wallet', 'Silver rings'],
-            'Blazer':             ['Minimal watch', 'Structured tote', 'Stud earrings', 'Belt'],
-            'Kurta':              ['Oxidised earrings', 'Potli bag', 'Bangles', 'Dupatta'],
-            'Saree':              ['Jhumkas or Chandbalis', 'Potli bag or clutch', 'Bangles or Kada', 'Bindi'],
-            'Co-ord Set':         ['Minimal pendant', 'Small crossbody', 'Sunglasses', 'Hoop earrings'],
-            'Dress':              ['Delicate necklace', 'Clutch or mini bag', 'Stud earrings', 'Belt'],
-            'Mini Skirt':         ['Hoop earrings', 'Mini bag', 'Layered necklaces', 'Sunglasses'],
-            'Cargo Pants':        ['Cap', 'Crossbody or sling bag', 'Chain', 'Minimal watch'],
-            'Baggy Jeans':        ['Belt', 'Hoop earrings', 'Crossbody bag', 'Chain necklace'],
-        };
-
-        // ================================================================
-        // COLOR CONTRAST LOGIC
-        // ================================================================
-        const colorContrast = {
-            'Black':       ['White', 'Cream', 'Beige', 'Olive', 'Red', 'Camel', 'Grey'],
-            'White':       ['Black', 'Navy Blue', 'Olive Green', 'Camel', 'Brown', 'Grey'],
-            'Navy Blue':   ['White', 'Cream', 'Beige', 'Mustard', 'Camel', 'Light Grey'],
-            'Royal Blue':  ['White', 'Grey', 'Beige', 'Camel', 'Cream', 'Tan'],
-            'Sky Blue':    ['White', 'Beige', 'Brown', 'Grey', 'Cream'],
-            'Olive Green': ['Beige', 'White', 'Brown', 'Cream', 'Camel', 'Tan'],
-            'Dark Green':  ['Beige', 'Cream', 'Tan', 'White', 'Camel'],
-            'Sage Green':  ['White', 'Beige', 'Cream', 'Brown', 'Tan'],
-            'Beige':       ['Brown', 'Olive', 'Navy', 'Camel', 'White', 'Tan'],
-            'Grey':        ['Black', 'White', 'Maroon', 'Navy Blue', 'Burgundy'],
-            'Charcoal':    ['White', 'Cream', 'Light Grey', 'Beige'],
-            'Maroon':      ['Beige', 'Cream', 'Grey', 'Olive', 'Camel'],
-            'Red':         ['Black', 'White', 'Grey', 'Denim Blue', 'Beige'],
-            'Brown':       ['Beige', 'Cream', 'Olive', 'White', 'Camel', 'Tan'],
-            'Camel':       ['White', 'Black', 'Navy', 'Brown', 'Burgundy'],
-            'Mustard':     ['Navy Blue', 'Brown', 'Olive', 'White', 'Dark Grey'],
-            'Baby Pink':   ['Grey', 'White', 'Black', 'Navy', 'Beige'],
-            'Hot Pink':    ['Black', 'White', 'Grey', 'Navy'],
-            'Lavender':    ['White', 'Grey', 'Beige', 'Dusty Rose', 'Cream'],
-            'Purple':      ['Grey', 'White', 'Beige', 'Black', 'Cream'],
-            'Cream':       ['Brown', 'Camel', 'Olive', 'Navy', 'Tan'],
-            'Off White':   ['Brown', 'Camel', 'Olive', 'Navy', 'Tan'],
-            'Rust':        ['Beige', 'Cream', 'Brown', 'Olive', 'White'],
-            'Peach':       ['White', 'Beige', 'Mint', 'Grey', 'Brown'],
-            'Mint Green':  ['White', 'Beige', 'Grey', 'Coral', 'Cream'],
-            'Denim Blue':  ['White', 'Grey', 'Beige', 'Black', 'Cream'],
-        };
-
-        // ================================================================
-        // FABRIC CONTRAST
-        // ================================================================
-        const fabricContrast = {
-            'Ribbed Knit':   'Denim or Cotton Canvas',
-            'Silk':          'Denim or Linen',
-            'Denim':         'Soft Cotton or Ribbed Knit',
-            'Leather':       'Cotton or Linen',
-            'Velvet':        'Silk or Satin',
-            'Fleece':        'Denim or Canvas',
-            'Cotton Blend':  'Denim or Linen',
-            'Soft Cotton':   'Denim or Canvas',
-            'Linen':         'Cotton or Denim',
-            'Satin':         'Denim or Cotton',
-            'Tweed':         'Cotton or Silk',
-            'Chiffon':       'Satin or Cotton Lining',
-            'Nylon':         'Cotton or Fleece',
-            'Polyester':     'Cotton or Linen',
-            'Rayon':         'Denim or Cotton',
-            'Suede':         'Cotton or Linen',
-            'Canvas':        'Cotton or Linen',
-            'Stretch Denim': 'Cotton or Ribbed Knit',
-            'Heavy Denim':   'Soft Cotton or Ribbed Knit',
-            'Faux Leather':  'Cotton or Jersey',
-            'Cashmere':      'Silk or Fine Cotton',
-            'Wool':          'Cotton or Silk Lining',
-        };
-
-        // ================================================================
-        // PICK RANDOM FROM ARRAY — variety ke liye
-        // ================================================================
-        function pick(arr) {
-            if (!arr || arr.length === 0) return null;
-            return arr[Math.floor(Math.random() * arr.length)];
-        }
-
-        function pickMultiple(arr, count = 2) {
-            if (!arr || arr.length === 0) return [];
-            const shuffled = [...arr].sort(() => Math.random() - 0.5);
-            return shuffled.slice(0, count);
-        }
-
-        // ================================================================
-        // CHECK IF COMPLETE OUTFIT
-        // ================================================================
-        const isComplete = completeOutfits.hasOwnProperty(item);
-
-        let suggestedBottom   = null;
-        let suggestedFootwear = footwear || null;
-        let suggestedAcc      = null;
-        let contrastColor     = null;
-        let bottomFabric      = fabricContrast[fabric] || 'Denim';
-        let outfitDescription = '';
-
-        if (isComplete) {
-            // Complete outfit — sirf accessories aur footwear
-            const completeData = completeOutfits[item];
-            suggestedAcc      = pickMultiple(completeData.accessories, 3).join(', ');
-            suggestedFootwear = footwear || completeData.footwear;
-
-            // Agar kurta hai toh bottom bhi suggest karo
-            if (completeData.bottom) {
-                suggestedBottom = pick(completeData.bottom);
-            }
-
-            outfitDescription = item === 'Saree' || item === 'Co-ord Set' || item === 'Dress'
-                ? `${color} ${fabric || ''} ${item} — complete outfit, no separate pairing needed`
-                : `${color} ${item} with ${suggestedBottom}`;
-
-        } else {
-            // Normal item — full pairing logic
-            const bottomOptions   = bottomPairing[item]   || ['Straight Fit Jeans', 'Chinos', 'Cargo Pants'];
-            const footwearOptions = footwearPairing[item] || ['White Sneakers', 'Loafers', 'Chunky Sneakers'];
-            const accOptions      = accPairing[item]      || ['Minimal watch', 'Simple chain', 'Clean bag'];
-            const colorOptions    = colorContrast[color]  || ['Beige', 'White', 'Grey'];
-
-            suggestedBottom   = pick(bottomOptions);
-            suggestedFootwear = footwear || pick(footwearOptions);
-            suggestedAcc      = pickMultiple(accOptions, 2).join(', ');
-            contrastColor     = pick(colorOptions);
-
-            outfitDescription = `${color} ${fabric || ''} ${item} paired with ${contrastColor} ${bottomFabric} ${suggestedBottom}`;
-        }
-
-        // ================================================================
-        // IMAGE PROMPT
-        // ================================================================
-        const imagePrompt = isComplete && !completeOutfits[item]?.bottom
-            ? `High fashion editorial photography. Full body shot of a ${color} ${fabric || ''} ${item}. Style: ${aesthetic || 'elegant contemporary'}. ${suggestedFootwear} footwear. Occasion: ${occasion || 'event'}. Clean white studio background, professional lighting, vertical portrait, no face visible.`
-            : `High fashion editorial lookbook photography. Complete outfit: ${outfitDescription}. Footwear: ${suggestedFootwear}. Accessories: ${suggestedAcc}. Style aesthetic: ${aesthetic || 'modern minimal'}. Occasion: ${occasion || 'street style'}. Weather: ${weather || 'clear'}. Clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face.`;
-
-        // ================================================================
-        // CAPTION
-        // ================================================================
-        const caption = isComplete && !completeOutfits[item]?.bottom
-            ? `A stunning ${color} ${item} — complete in itself. Elevated with ${suggestedAcc} for a ${aesthetic || 'polished'} finish.`
-            : `${color} ${item} paired with ${contrastColor} ${suggestedBottom} — complementary colors for visual balance. ${suggestedFootwear} ties the ${aesthetic || 'clean'} look together.`;
-
-        // ================================================================
-        // SHOPPING ITEMS
-        // ================================================================
-        const shoppingItems = [
-            `${color} ${item}`,
-            suggestedBottom ? `${contrastColor || ''} ${suggestedBottom}`.trim() : null,
-            suggestedFootwear?.split(' or ')[0],
-            suggestedAcc?.split(',')[0],
-        ].filter(Boolean);
+        console.log('⚠ Using minimal hardcoded fallback (Groq unavailable)');
 
         res.json({
             success: true,
             imagePrompt,
-            caption,
-            shoppingItems,
+            caption: `${color} ${item} styled for ${aesthetic || 'the occasion'}.`,
+            shoppingItems: [`${color} ${item}`, neutralBottom, neutralFootwear].filter(Boolean),
             pairingDetails: {
-                mainItem:   `${color} ${item}`,
-                bottom:     suggestedBottom ? `${contrastColor} ${suggestedBottom}` : 'Complete outfit',
-                footwear:   suggestedFootwear,
-                accessory:  suggestedAcc,
-                colorLogic: contrastColor ? `${color} × ${contrastColor}` : 'Monochrome / complete',
-                isComplete: isComplete
+                mainItem: `${color} ${item}`,
+                bottom: neutralBottom,
+                footwear: neutralFootwear,
+                accessory: neutralAcc,
+                colorLogic: 'Neutral / fallback',
+                isComplete: false
             }
         });
-
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
+}
+
+
+// ── ROUTE 1: OUTFIT LOGIC — Groq generates full pairing + image prompt ──
+app.post('/api/generate-outfit-logic', async (req, res) => {
+    const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
+
+    if (!process.env.GROQ_API_KEY_OUTFIT) {
+        console.warn('⚠ GROQ_API_KEY_OUTFIT missing, using hardcoded fallback');
+        return hardcodedFallback(req, res);
+    }
+
+    const genderNorm = (gender || 'unisex').toLowerCase().trim();
+    const isUnisex = genderNorm === 'unisex';
+    console.log(`🎯 Outfit request — gender received: "${gender}" → normalized: "${genderNorm}" → path: ${isUnisex ? 'DUAL (unisex)' : 'SINGLE (' + genderNorm + ')'}`);
+    const garmentDesc = `${color} ${fabric || ''} ${item}`.replace(/\s+/g, ' ').trim();
+
+    const sysPrompt = isUnisex
+        ? `You are a fashion stylist AI. The user's main garment is: "${garmentDesc}". This EXACT garment is worn by BOTH models — identical color, identical fabric, identical print/pattern, identical fit. Design TWO pairings around this same garment: one for a male model, one for a female model. Each model's bottom/footwear/accessories are chosen INDEPENDENTLY — they can end up the same or different, whichever genuinely fits best. Do not force a difference and do not force sameness.
+
+CRITICAL for imagePrompt: use the EXACT SAME words for the garment's color/fabric/pattern in both model descriptions — do not use synonyms or reinterpret the color (e.g. if user said "Mint Green", write "Mint Green" both times, never "teal" for one and "forest green" for the other). Any color/pattern drift between the two models is a failure.
+
+CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE, DRAPE, and SHEEN so it looks visually distinct in the image. Examples: Georgette → "flowing sheer georgette with soft, light drape and subtle crinkle texture"; Nylon → "smooth glossy nylon with a slight synthetic sheen and technical finish"; Silk → "lustrous silk with a smooth liquid sheen and fluid drape"; Cotton → "structured matte cotton with a natural woven texture"; Denim → "sturdy denim with visible twill weave and slight stiffness"; Linen → "textured linen with a relaxed, slightly wrinkled matte finish"; Leather → "smooth leather with visible sheen and structured stiffness". Match the given fabric to its real-world texture, don't default everything to a plain/cotton look.
+
+Output ONLY valid JSON, no prose, no markdown fences:
+{
+  "male":   { "bottom": "string or null", "footwear": "string", "accessories": "2-3 items, comma separated" },
+  "female": { "bottom": "string or null", "footwear": "string", "accessories": "2-3 items, comma separated" },
+  "contrastColor": "string or null",
+  "caption": "1-2 line stylist caption mentioning both looks",
+  "imagePrompt": "FULL ready-to-use fashion editorial image generation prompt. Two models standing side by side, one male one female, BOTH wearing the exact same ${garmentDesc} — same color words used for both, no variation. Each with their own bottom/footwear/accessories as specified above. Style aesthetic, occasion, weather mood included. End with: clean white studio background, full body shot, sharp clothing detail, no face visible."
+}`
+        : `You are a fashion stylist AI. Given user's clothing pick, design a complete complementary outfit and output ONLY valid JSON, no prose, no markdown fences:
+{
+  "bottom": "string or null (null if item is already complete like Saree/Dress/Co-ord)",
+  "footwear": "string",
+  "accessories": "2-3 items, comma separated",
+  "contrastColor": "string or null",
+  "caption": "1-2 line stylist caption for the user",
+  "imagePrompt": "FULL ready-to-use fashion editorial image generation prompt. Must include: garment, fabric, color, paired bottom (if any), footwear, accessories, aesthetic, occasion, weather mood. End with: clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face visible."
+}
+
+The garment (item, color, fabric) is FIXED regardless of gender — pair normally for a ${genderNorm} presentation.
+
+CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE, DRAPE, and SHEEN in the imagePrompt so it looks visually distinct in the image. Examples: Georgette → "flowing sheer georgette with soft, light drape and subtle crinkle texture"; Nylon → "smooth glossy nylon with a slight synthetic sheen and technical finish"; Silk → "lustrous silk with a smooth liquid sheen and fluid drape"; Cotton → "structured matte cotton with a natural woven texture"; Denim → "sturdy denim with visible twill weave and slight stiffness"; Linen → "textured linen with a relaxed, slightly wrinkled matte finish"; Leather → "smooth leather with visible sheen and structured stiffness". Match the given fabric to its real-world texture, don't default everything to a plain/cotton look.`;
+
+    const userMsg = `item:${item}, color:${color}, fabric:${fabric}, aesthetic:${aesthetic}, occasion:${occasion}, weather:${weather}, footwear:${footwear || 'suggest one'}, gender:${genderNorm}, notes:${additionalDetails || 'none'}`;
+
+    // Same fallback chain as trend.js
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+
+    for (const model of models) {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000); // 8s cap per model
+
+            const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY_OUTFIT}` },
+                body: JSON.stringify({
+                    model,
+                    messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }],
+                    max_tokens: 400,
+                    temperature: 0.8
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            const json = await gRes.json();
+            if (json?.error) { console.warn(`⚠ ${model}: ${json.error.message}`); continue; }
+
+            const raw = json.choices?.[0]?.message?.content || '';
+            const match = raw.match(/\{[\s\S]*\}/);
+            if (!match) { console.warn(`⚠ ${model}: no JSON in response`); continue; }
+
+            const parsed = JSON.parse(match[0]);
+            if (!parsed.imagePrompt) { console.warn(`⚠ ${model}: missing imagePrompt`); continue; }
+
+            console.log(`✅ Groq (${model}) generated outfit pairing`);
+
+            if (isUnisex) {
+                if (!parsed.male || !parsed.female) { console.warn(`⚠ ${model}: missing male/female pairing`); continue; }
+                console.log('🧪 Debug — unisex dual pairing | male:', parsed.male, '| female:', parsed.female);
+                return res.json({
+                    success: true,
+                    imagePrompt: parsed.imagePrompt,
+                    caption: parsed.caption || `${color} ${item} styled two ways for ${aesthetic || 'the occasion'}.`,
+                    shoppingItems: [
+                        `${color} ${item}`,
+                        parsed.male.bottom, parsed.male.footwear,
+                        parsed.female.bottom, parsed.female.footwear
+                    ].filter(Boolean),
+                    pairingDetails: {
+                        mainItem: `${color} ${item}`,
+                        male: parsed.male,
+                        female: parsed.female,
+                        colorLogic: parsed.contrastColor ? `${color} × ${parsed.contrastColor}` : 'Monochrome / complete',
+                        isComplete: !parsed.male.bottom && !parsed.female.bottom
+                    }
+                });
+            }
+
+            console.log('🧪 Debug — gender:', genderNorm, '| bottom:', parsed.bottom, '| footwear:', parsed.footwear, '| accessories:', parsed.accessories);
+            return res.json({
+                success: true,
+                imagePrompt: parsed.imagePrompt,
+                caption: parsed.caption || `${color} ${item} styled for ${aesthetic || 'the occasion'}.`,
+                shoppingItems: [
+                    `${color} ${item}`,
+                    parsed.bottom,
+                    parsed.footwear,
+                    parsed.accessories?.split(',')[0]?.trim()
+                ].filter(Boolean),
+                pairingDetails: {
+                    mainItem: `${color} ${item}`,
+                    bottom: parsed.bottom || 'Complete outfit',
+                    footwear: parsed.footwear,
+                    accessory: parsed.accessories,
+                    colorLogic: parsed.contrastColor ? `${color} × ${parsed.contrastColor}` : 'Monochrome / complete',
+                    isComplete: !parsed.bottom
+                }
+            });
+        } catch (err) {
+            console.warn(`⚠ ${model} failed:`, err.message);
+        }
+    }
+
+    console.error('❌ All Groq models failed, falling back to hardcoded sheet');
+    return hardcodedFallback(req, res);
 });
 
 
@@ -667,7 +476,9 @@ app.get('/api/proxy-image', async (req, res) => {
                      : 'person';
 
     const seed = Math.floor(Math.random() * 999999);
-    const finalPrompt = `fashion editorial photography, single ${genderTerm} model, full body portrait, ${prompt}, clean white studio background, vertical portrait, no face`;
+    const finalPrompt = genderTerm === 'person' && genderRaw === 'unisex'
+        ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
+        : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
 
     console.log('☁️ Cloudflare Workers AI call...');
     console.log('📝 Prompt:', finalPrompt.slice(0, 80) + '...');
