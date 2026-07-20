@@ -188,63 +188,15 @@
 
     <div id="footer-placeholder"></div>
 
-    <script>
-        // 1. Function: Navbar aur Footer ko load karna
-        async function loadComponents() {
-            try {
-                // Navbar load karo
-                const navResponse = await fetch('navbar.html');
-                const navHtml = await navResponse.text();
-                document.getElementById('nav-placeholder').innerHTML = navHtml;
 
-                // Navbar load hone ke BAAD hi login status check karo
-                updateAuthUI();
-
-                // (Optional) Footer load karo agar placeholder hai
-                const footerPlace = document.getElementById('footer-placeholder');
-                if (footerPlace) {
-                    const footRes = await fetch('footer.html');
-                    const footHtml = await footRes.text();
-                    footerPlace.innerHTML = footHtml;
-                }
-
-            } catch (error) {
-                console.error("Layout loading error:", error);
-            }
-        }
-
-        // 2. Function: Login Status ke hisaab se UI badalna
-        function updateAuthUI() {
-            const userName = localStorage.getItem('avantUserName');
-            const authBtn = document.getElementById('authBtn');
-
-            if (userName && authBtn) {
-                // @ symbol ke saath lowercase username dikhao
-                authBtn.innerText = `@${userName.toLowerCase()}`;
-
-                authBtn.href = "#"; // Disable login link
-                authBtn.classList.add('login-btn-active'); // CSS style apply karne ke liye
-
-                authBtn.onclick = function (e) {
-                    e.preventDefault();
-                    if (confirm("Logout from Avant?")) {
-                        localStorage.removeItem('avantUserName');
-                        window.location.reload();
-                    }
-                };
-            }
-        }
-
-        // 3. Page load hote hi components load karo
-        window.onload = loadComponents;
-    </script>
+    <div id="footer-placeholder"></div>
 
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
 
     <script>
-        // Ye function har page pe Navbar load karega + Username dikhayega
-        window.onload = () => loadLayout(); 
+        // Ek hi navbar loader — burger menu bhi isi ke baad wire hota hai
+        window.onload = () => loadLayout(initMobileMenu);
     </script>
 
 </body>

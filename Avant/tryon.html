@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Avant | Virtual Fitting Room</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="tryon-page-body">
+    <div id="nav-placeholder"></div>
+
+    <main class="tryon-page">
+        <header class="tryon-hero">
+            <p class="editorial-label-ward">06 / VIRTUAL FITTING ROOM</p>
+            <h1 class="tryon-title">TRY IT <span>ON</span></h1>
+            <p class="tryon-sub">Upload your photo, place a saved look on top, and see how it fits before you buy.</p>
+        </header>
+
+        <div class="tryon-grid">
+
+            <!-- LEFT: Upload + Selection panels -->
+            <div class="tryon-controls">
+
+                <section class="tryon-panel">
+                    <p class="tryon-panel-label">01 — YOUR PHOTO</p>
+                    <div class="tryon-upload-zone" id="upload-zone">
+                        <input type="file" id="user-photo-input" accept="image/*" hidden>
+                        <div class="tryon-upload-inner" id="upload-inner">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p>Upload a full-body photo<br><span>front-facing, plain background works best</span></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tryon-panel">
+                    <p class="tryon-panel-label">02 — SELECT A LOOK</p>
+                    <div class="tryon-looks-grid" id="looks-grid">
+                        <p class="tryon-empty-msg">Loading your saved looks…</p>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- RIGHT: Canvas stage -->
+            <div class="tryon-stage-wrap">
+                <p class="tryon-panel-label">03 — FIT IT</p>
+                <div class="tryon-stage" id="tryon-stage">
+                    <canvas id="tryon-canvas"></canvas>
+                    <p class="tryon-stage-placeholder" id="stage-placeholder">
+                        Upload your photo and pick a look to begin
+                    </p>
+                </div>
+
+                <div class="tryon-adjust-controls" id="adjust-controls" style="display:none;">
+                    <div class="tryon-slider-row">
+                        <label>Size</label>
+                        <input type="range" id="scale-slider" min="20" max="200" value="90">
+                    </div>
+                    <div class="tryon-slider-row">
+                        <label>Opacity</label>
+                        <input type="range" id="opacity-slider" min="20" max="100" value="85">
+                    </div>
+                    <p class="tryon-hint">Drag the outfit to line it up. Scroll or pinch also resizes it.</p>
+                </div>
+
+                <div class="tryon-actions" id="tryon-actions" style="display:none;">
+                    <button type="button" class="action-btn action-btn--save" id="tryon-download-btn">
+                        Download This Try-On
+                    </button>
+                    <button type="button" class="action-btn action-btn--shop" id="tryon-reset-btn">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/tryon.js"></script>
+    <script>
+        window.onload = () => loadLayout(initMobileMenu);
+    </script>
+</body>
+
+</html>

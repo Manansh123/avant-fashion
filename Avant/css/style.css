@@ -52,6 +52,20 @@ body {
     box-sizing: border-box;
 }
 
+/* Dark scrim behind navbar — text hamesha white rehta, image kuch bhi ho */
+.navbar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 150px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.18) 55%, transparent);
+    z-index: -1;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+}
+.navbar.scrolled::before { opacity: 0; }
+
 .navbar .container {
     display: flex;
     justify-content: space-between;
@@ -71,12 +85,16 @@ body {
 .logo-container { display: flex; align-items: center; gap: 7px; }
 .logo-link { display: flex; align-items: center; gap: 5px; text-decoration: none; }
 .logo-link:hover { opacity: 0.9; }
-.logo-image  { height: 40px; width: 43px; margin-right: 5px; }
-.logo-name-image { height: 35px; width: auto; margin-right: 10px; }
+.logo-image  { height: 46px; width: 50px; margin-right: 5px; }
+.logo-name-image { height: 40px; width: auto; margin-right: 10px; }
 
 /* Default logo = white (works on dark hero) */
 .logo-image, .logo-name-image {
-    filter: invert(0) brightness(1);
+    filter: invert(0) brightness(1)
+        drop-shadow(0.4px 0 0 #fff)
+        drop-shadow(-0.4px 0 0 #fff)
+        drop-shadow(0 0.4px 0 #fff)
+        drop-shadow(0 -0.4px 0 #fff);
     transition: filter 0.4s ease;
 }
 
@@ -227,8 +245,9 @@ body {
     line-height: 0.9;
     letter-spacing: -2px;
     margin-bottom: 60px;
+    text-align: center;
 }
-.vision-main-heading span { display: block; padding-left: 8%; color: #444; }
+.vision-main-heading span { display: block; color: #444; }
 
 .vision-grid { display: flex; justify-content: space-between; gap: 80px; margin-bottom: 50px; text-align: left; }
 .vision-left, .vision-right { flex: 1; }
@@ -644,7 +663,8 @@ h2.section-heading, .tool-text h3 {
     /* ── Navbar ── */
     .navbar { padding: 12px 18px; }
     .nav-right-group { gap: 12px; }
-    .logo-name-image { display: none; }
+    .logo-image { display: none; }
+    .logo-name-image { height: 26px; margin-right: 0; }
 
     /* Show hamburger, hide desktop links */
     .burger-menu { display: flex; }
@@ -693,10 +713,13 @@ h2.section-heading, .tool-text h3 {
     /* ── Brand Vision ── */
     .brand-vision { padding: 35px 16px 10px; margin-top: 0; }
     .vision-wrapper { padding: 0 5px; }
+    .vision-subtext { text-align: center; }
     .vision-main-heading { font-size: clamp(1.8rem, 7vw, 2.5rem); letter-spacing: -1px; margin-bottom: 35px; }
-    .vision-main-heading span { padding-left: 0; }
-    .vision-grid { flex-direction: column; gap: 25px; }
-    .vision-outro { font-size: clamp(1.5rem, 5vw, 2.2rem); text-align: left; margin-bottom: 50px; }
+    .vision-grid { flex-direction: column; gap: 30px; text-align: center; }
+    .vision-intro { font-size: 0.92rem; line-height: 1.7; }
+    .vision-system-title { text-align: center; }
+    .vision-list li { font-size: 1.15rem; text-align: center; }
+    .vision-outro { font-size: clamp(1.5rem, 5vw, 2.2rem); text-align: right; margin-bottom: 50px; }
 
     /* ── Stats bar ── */
     .stats-grid { flex-direction: column; gap: 35px; padding: 30px 0; }
