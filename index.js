@@ -336,6 +336,46 @@ function hardcodedFallback(req, res) {
 
 
 // ── ROUTE 1: OUTFIT LOGIC — Groq generates full pairing + image prompt ──
+// ── ROUTE 0: TREND STYLE TIPS — trend.js ka Groq call ab backend se (secure) ──
+app.post('/api/trend-style-tips', async (req, res) => {
+    const { style } = req.body;
+    if (!style) return res.status(400).json({ success: false, message: 'style required' });
+
+    if (!process.env.GROQ_API_KEY_TRENDS) {
+        console.warn('⚠ GROQ_API_KEY_TRENDS missing in .env');
+        return res.status(500).json({ success: false, message: 'GROQ_API_KEY_TRENDS missing in .env' });
+    }
+
+    const prompt = `You are a fashion stylist for AVANT. Give exactly 5 styling tips for the "${style}" aesthetic for 2026. Plain text only. No markdown, no bold, no asterisks. Number each tip: 1. tip text. One tip per line. Output ONLY the 5 numbered tips.`;
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+
+    for (const model of models) {
+        try {
+            const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY_TRENDS}` },
+                body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 })
+            });
+            const json = await gRes.json();
+            if (json?.error) {
+                if (json.error.message?.includes('decommissioned')) { console.warn(`⚠ ${model} decommissioned`); continue; }
+                console.warn(`⚠ ${model}: ${json.error.message}`);
+                continue;
+            }
+            const text = json.choices?.[0]?.message?.content || '';
+            if (text.trim().length > 10) {
+                console.log(`✅ Trend tips (${model}) success`);
+                return res.json({ success: true, text });
+            }
+        } catch (err) {
+            console.warn(`⚠ ${model} failed:`, err.message);
+        }
+    }
+    console.error('❌ All Groq models failed for trend tips');
+    return res.status(500).json({ success: false, message: 'All Groq models failed' });
+});
+
+
 app.post('/api/generate-outfit-logic', async (req, res) => {
     const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
 

@@ -1,8 +1,6 @@
 // ================================================================
-// AVANT TREND.JS — Groq Free API (AI working — DO NOT CHANGE)
+// AVANT TREND.JS — AI ab backend route se aata hai (/api/trend-style-tips)
 // ================================================================
-
-const GROQ_API_KEY = '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';
 
 // ================================================================
 // DATA ARCHIVE
@@ -300,40 +298,21 @@ function renderTips(style, tips) {
 }
 
 // ================================================================
-// GROQ CALL — AI working, DO NOT CHANGE
+// GROQ CALL — ab backend route ke through (secure, key kabhi browser mein nahi)
 // ================================================================
 async function callGroq(style) {
-    const prompt = `You are a fashion stylist for AVANT. Give exactly 5 styling tips for the "${style}" aesthetic for 2026. Plain text only. No markdown, no bold, no asterisks. Number each tip: 1. tip text. One tip per line. Output ONLY the 5 numbered tips.`;
+    const res = await fetch('/api/trend-style-tips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style }),
+        signal: AbortSignal.timeout(20000)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Trend tips failed');
 
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
-
-    for (const model of models) {
-        try {
-            console.log(`📡 Trying: ${model}`);
-            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
-                body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 }),
-                signal: AbortSignal.timeout(15000)
-            });
-            if (res.status === 400) {
-                const err = await res.json().catch(() => ({}));
-                if (err?.error?.message?.includes('decommissioned')) { console.warn(`⚠ ${model} decommissioned`); continue; }
-                throw new Error(err?.error?.message || 'HTTP 400');
-            }
-            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(`${res.status}: ${err?.error?.message}`); }
-            const data = await res.json();
-            const text = data?.choices?.[0]?.message?.content || '';
-            const tips = parseTipsToArray(text);
-            if (tips.length >= 3) { console.log(`✅ ${model} success`); return tips; }
-            throw new Error(`Only ${tips.length} tips`);
-        } catch (err) {
-            if (err.message.includes('decommissioned')) { continue; }
-            console.warn(`⚠ ${model}: ${err.message}`);
-            if (model === models[models.length - 1]) throw err;
-        }
-    }
-    throw new Error('All Groq models failed');
+    const tips = parseTipsToArray(data.text);
+    if (tips.length >= 3) return tips;
+    throw new Error(`Only ${tips.length} tips returned`);
 }
 
 // ================================================================
