@@ -769,6 +769,17 @@ h2.section-heading, .tool-text h3 {
 }
 
 .initial-msg { grid-column: 1/-1; text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: #ccc; font-style: italic; padding: 100px 0; }
+.shop-loading-state .initial-msg { grid-column: unset; padding: 0; margin-bottom: 20px; }
+.shop-loading-state {
+    grid-column: 1/-1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: 40px 0;
+}
+.shop-loading-state .loading-bars { margin-bottom: 28px; }
 
 
 /* ──────────────────────────────────────────────────────────────
@@ -1385,16 +1396,18 @@ h2.section-heading, .tool-text h3 {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
     font-size: 1.15rem;
-    color: #333;
+    color: #8f8f8f;
     line-height: 1.5;
     margin-bottom: 8px;
+    text-align: center;
 }
 .fashion-quote-author {
     font-family: 'Montserrat', sans-serif;
     font-size: 0.72rem;
     letter-spacing: 1.5px;
-    color: #999;
+    color: #8f8f8f;
     text-transform: uppercase;
+    text-align: center;
 }
 
 /* Five-bar loader */
@@ -1408,7 +1421,7 @@ h2.section-heading, .tool-text h3 {
 .loading-bars span {
     display: block;
     width: 5px;
-    background: #000;
+    background: #999;
     border-radius: 2px;
     animation: barDance 1s ease-in-out infinite;
 }

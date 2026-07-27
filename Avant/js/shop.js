@@ -92,11 +92,15 @@ async function performSearch(queryOverride) {
 
     const myToken = ++_searchToken; // is call ka apna unique token
 
-    // Loading state
+    // Loading state — sirf spinner bars + fashion quote (ek hi loading indicator, double nahi)
     resultsGrid.innerHTML = `
-        <p class="initial-msg" style="font-style:italic;color:#bbb;">
-            Scouring platforms for <em>${query}</em>...
-        </p>`;
+        <div class="shop-loading-state">
+            <div class="loading-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+        </div>`;
+    showFashionQuote(resultsGrid.querySelector('.shop-loading-state'));
+    resultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' }); // turant dikhao, result ka wait mat karo
 
     const realData = await fetchRealComparison(query);
 

@@ -403,10 +403,17 @@ app.get('/api/shop-compare', async (req, res) => {
                 }))
                 .filter(s => s.text);
 
+            // Specifications mein se material/fabric wali entry dhoondo (agar hai)
+            const specs = pr.specifications || [];
+            const materialSpec = specs.find(s =>
+                /material|fabric/i.test(s.title || '')
+            );
+
             return {
                 rating: pr.rating || null,
                 reviews: pr.reviews || null,
-                snippets
+                snippets,
+                material: materialSpec?.value || null
             };
         } catch (err) {
             console.warn('⚠ Product detail fetch failed:', err.message);
@@ -458,7 +465,11 @@ app.get('/api/shop-compare', async (req, res) => {
                 reviews: found.reviews || detail?.reviews || null,
                 snippets: detail?.snippets || [],
                 thumbnail: found.thumbnail || null,
-                link: found.product_link || found.link || null
+                link: found.product_link || found.link || null,
+                delivery: found.delivery || null,
+                badges: found.extensions || [],
+                condition: found.second_hand_condition || null,
+                material: detail?.material || null
             };
         });
 

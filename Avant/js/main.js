@@ -197,3 +197,48 @@ function showTrendOutfits(trend) {
         });
     }
 }
+
+// ================================================================
+// FASHION QUOTES — loading states ke andar dikhane ke liye
+// (Myntra-jaisa: spinner ke saath ek famous fashion quote)
+// ================================================================
+const AVANT_FASHION_QUOTES = [
+    { quote: "Fashion is the armor to survive the reality of everyday life.", author: "Bill Cunningham" },
+    { quote: "The joy of dressing is an art.", author: "John Galliano" },
+    { quote: "Simplicity is the keynote of all true elegance.", author: "Coco Chanel" },
+    { quote: "Fashion fades, only style remains the same.", author: "Coco Chanel" },
+    { quote: "Elegance is elimination.", author: "Cristóbal Balenciaga" },
+    { quote: "I don't do fashion, I am fashion.", author: "Coco Chanel" },
+    { quote: "Style is a way to say who you are without having to speak.", author: "Rachel Zoe" },
+    { quote: "Fashion is about dressing according to what's fashionable. Style is more about being yourself.", author: "Oscar de la Renta" },
+    { quote: "Fashion is architecture: it is a matter of proportions.", author: "Coco Chanel" },
+    { quote: "Clothes mean nothing until someone lives in them.", author: "Marc Jacobs" },
+    { quote: "Style is knowing who you are, what you want to say, and not giving a damn.", author: "Orson Welles" },
+    { quote: "Design is not just what it looks like — design is how it works.", author: "Steve Jobs" },
+    { quote: "Fashion should be a form of escapism, not a form of imprisonment.", author: "Alexander McQueen" },
+    { quote: "You can have anything you want in life if you dress for it.", author: "Edith Head" },
+    { quote: "Give a girl the right shoes, and she can conquer the world.", author: "Marilyn Monroe" },
+    { quote: "Elegance does not consist in putting on a new dress.", author: "Coco Chanel" },
+    { quote: "In difficult times, fashion is always outrageous.", author: "Elsa Schiaparelli" },
+    { quote: "Fashion is not something that exists in dresses only.", author: "Coco Chanel" }
+];
+
+function getRandomFashionQuote() {
+    return AVANT_FASHION_QUOTES[Math.floor(Math.random() * AVANT_FASHION_QUOTES.length)];
+}
+
+// Kisi bhi loading-container ke andar quote inject karo (spinner already
+// existing ho toh usko chhoo nahi rahe — bas quote block add/refresh karta)
+function showFashionQuote(container) {
+    if (!container) return;
+    let block = container.querySelector('.fashion-quote-block');
+    if (!block) {
+        block = document.createElement('div');
+        block.className = 'fashion-quote-block';
+        container.appendChild(block);
+    }
+    const { quote, author } = getRandomFashionQuote();
+    block.innerHTML = `
+        <p class="fashion-quote-text">"${quote}"</p>
+        <p class="fashion-quote-author">${author}</p>`;
+}

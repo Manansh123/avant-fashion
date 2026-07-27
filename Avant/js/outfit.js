@@ -32,7 +32,10 @@ function showMirrorState(state) {
     const l = document.getElementById('loading-msg');
     const r = document.getElementById('result-content');
     if (d) d.style.display = (state === 'default')  ? 'flex' : 'none';
-    if (l) l.style.display = (state === 'loading')  ? 'flex' : 'none';
+    if (l) {
+        l.style.display = (state === 'loading') ? 'flex' : 'none';
+        if (state === 'loading') showFashionQuote(l.querySelector('.mirror-loading-inner'));
+    }
     if (r) {
         if (state === 'result') {
             r.style.animation = 'none';
