@@ -337,6 +337,142 @@ function hardcodedFallback(req, res) {
 
 // ── ROUTE 1: OUTFIT LOGIC — Groq generates full pairing + image prompt ──
 // ── ROUTE 0: TREND STYLE TIPS — trend.js ka Groq call ab backend se (secure) ──
+// ── ROUTE 0b: SHOP COMPARE — real price/rating/reviews via SerpApi Google Shopping ──
+app.get('/api/shop-compare', async (req, res) => {
+    const query = (req.query.q || '').trim();
+    if (!query) return res.status(400).json({ success: false, message: 'q required' });
+
+    if (!process.env.SERPAPI_KEY) {
+        console.warn('⚠ SERPAPI_KEY missing in .env');
+        return res.status(500).json({ success: false, message: 'SERPAPI_KEY missing in .env' });
+    }
+
+    const targetSites = [
+        'amazon.in', 'flipkart.com', 'myntra.com', 'ajio.com',
+        'nykaafashion.com', 'tatacliq.com', 'snapdeal.com', 'meesho.com'
+    ];
+
+    // Query broader banao dusri try ke liye — pehla word (aksar color/adjective) hata do,
+    // taaki "blue denim jacket" → "denim jacket" jaisa broader/generic search ho
+    function broadenQuery(q) {
+        const words = q.trim().split(/\s+/);
+        return words.length > 2 ? words.slice(1).join(' ') : q;
+    }
+
+    async function fetchShoppingResults(q) {
+        const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(q)}&gl=in&hl=en&api_key=${process.env.SERPAPI_KEY}`;
+        const sRes = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        const data = await sRes.json();
+        if (data.error) throw new Error(data.error);
+        return data.shopping_results || [];
+    }
+
+    // Kuch platform-naam SerpApi ke "source" field mein alag likhe ho sakte —
+    // e.g. domain "nykaafashion.com" hai lekin source shayad "Nykaa Fashion" ya "Nykaa" ho
+    const siteKeywords = {
+        'nykaafashion.com': ['nykaa'],
+        'tatacliq.com':     ['tatacliq', 'tata cliq'],
+        'snapdeal.com':     ['snapdeal'],
+        'meesho.com':       ['meesho']
+    };
+    function matchSite(results, site) {
+        const keywords = siteKeywords[site] || [site.split('.')[0]];
+        return results.find(r => {
+            const src = (r.source || '').toLowerCase();
+            return keywords.some(k => src.includes(k));
+        }) || null;
+    }
+
+    // Per-product detail lookup — rating/reviews missing ho toh ye fill karta hai,
+    // aur agar Google ke paas genuine review snippets hain toh wo bhi la sakta hai
+    async function fetchProductDetail(productId) {
+        if (!productId) return null;
+        try {
+            const url = `https://serpapi.com/search.json?engine=google_product&product_id=${encodeURIComponent(productId)}&gl=in&hl=en&api_key=${process.env.SERPAPI_KEY}`;
+            const pRes = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            const data = await pRes.json();
+            if (data.error) return null;
+
+            const pr = data.product_results || {};
+            const snippets = (data.reviews_results?.reviews || [])
+                .slice(0, 3)
+                .map(rv => ({
+                    text: rv.snippet || rv.content || null,
+                    rating: rv.rating || null,
+                    source: rv.source || null
+                }))
+                .filter(s => s.text);
+
+            return {
+                rating: pr.rating || null,
+                reviews: pr.reviews || null,
+                snippets
+            };
+        } catch (err) {
+            console.warn('⚠ Product detail fetch failed:', err.message);
+            return null;
+        }
+    }
+
+    try {
+        const firstPassResults = await fetchShoppingResults(query);
+
+        let matched = targetSites.map(site => ({ site, found: matchSite(firstPassResults, site) }));
+        const stillMissing = matched.filter(m => !m.found).map(m => m.site);
+
+        // Broader query — sirf ek extra call, sirf agar kuch platforms miss hue
+        if (stillMissing.length > 0) {
+            const broader = broadenQuery(query);
+            if (broader.toLowerCase() !== query.toLowerCase()) {
+                try {
+                    const secondPassResults = await fetchShoppingResults(broader);
+                    const secondSources = [...new Set(secondPassResults.map(r => r.source).filter(Boolean))];
+                    console.log(`🔍 Broadened retry ("${broader}") ne ye sources diye:`, secondSources.join(', ') || 'none');
+                    matched = matched.map(m => {
+                        if (m.found) return m;
+                        const retryFound = matchSite(secondPassResults, m.site);
+                        return retryFound ? { site: m.site, found: retryFound } : m;
+                    });
+                } catch (retryErr) {
+                    console.warn('⚠ Broadened retry failed, keeping first-pass results:', retryErr.message);
+                }
+            }
+        }
+
+        // Har matched platform ke liye — rating missing ho ya review-snippets chahiye,
+        // ek extra product-detail call lagao (parallel, taaki total time na badhe zyada)
+        const detailPromises = matched.map(m =>
+            m.found ? fetchProductDetail(m.found.product_id) : Promise.resolve(null)
+        );
+        const details = await Promise.all(detailPromises);
+
+        const results = matched.map(({ site, found }, i) => {
+            if (!found) return { site, available: false };
+            const detail = details[i];
+            return {
+                site,
+                available: true,
+                title: found.title,
+                price: found.price || null,
+                rating: found.rating || detail?.rating || null,
+                reviews: found.reviews || detail?.reviews || null,
+                snippets: detail?.snippets || [],
+                thumbnail: found.thumbnail || null,
+                link: found.product_link || found.link || null
+            };
+        });
+
+        const uniqueSources = [...new Set(firstPassResults.map(r => r.source).filter(Boolean))];
+        console.log(`🔍 SerpApi ne ye sources diye (query: "${query}"):`, uniqueSources.join(', ') || 'none');
+        console.log(`✅ SerpApi shop-compare: ${results.filter(m => m.available).length}/${targetSites.length} platforms matched, ${results.filter(m => m.rating).length} have rating, ${results.reduce((a,r)=>a+(r.snippets?.length||0),0)} review snippets total`);
+        return res.json({ success: true, query, results });
+    } catch (err) {
+        console.error('❌ shop-compare failed:', err.message);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
 app.post('/api/trend-style-tips', async (req, res) => {
     const { style } = req.body;
     if (!style) return res.status(400).json({ success: false, message: 'style required' });
@@ -511,12 +647,15 @@ app.get('/api/proxy-image', async (req, res) => {
     const width     = parseInt(req.query.width)  || 768;
     const height    = parseInt(req.query.height) || 1024;
     const genderRaw = (req.query.gender || '').toLowerCase().trim();
+    const mode      = (req.query.mode || '').toLowerCase().trim();
     const genderTerm = genderRaw === 'men' || genderRaw === 'male' ? 'male'
                      : genderRaw === 'women' || genderRaw === 'female' ? 'female'
                      : 'person';
 
     const seed = Math.floor(Math.random() * 999999);
-    const finalPrompt = genderTerm === 'person' && genderRaw === 'unisex'
+    const finalPrompt = mode === 'product'
+        ? `e-commerce product photography, ${prompt}, single garment flat lay or on invisible mannequin, plain white background, studio lighting, sharp detail, no person, no model, no text, no logo, no watermark`
+        : genderTerm === 'person' && genderRaw === 'unisex'
         ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
         : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
 

@@ -619,13 +619,155 @@ h2.section-heading, .tool-text h3 {
 #search-btn:hover { background: #333; letter-spacing: 5px; }
 
 .results-section { padding: 80px 5%; background: #fff; }
-.results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 40px; }
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 320px)); justify-content: center; gap: 40px; }
 .product-box { border-bottom: 1px solid #eee; padding-bottom: 30px; transition: transform 0.4s; }
 .product-box:hover { transform: translateY(-5px); }
 .platform-tag { font-family: 'Montserrat', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 3px; color: #aaa; margin-bottom: 12px; display: block; }
 .product-box img { width: 100%; aspect-ratio: 3/4; object-fit: cover; margin-bottom: 20px; }
+.product-box img.gen-loading { opacity: 0.5; animation: gen-pulse 1.4s ease-in-out infinite; }
+@keyframes gen-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
 .product-box h4 { font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; }
 .product-box p { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; color: #555; margin-bottom: 20px; }
+.product-box p.real-data-note {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #999;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+.best-rated-badge {
+    display: inline-block;
+    background: #000;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+}
+.real-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+    font-family: 'Montserrat', sans-serif;
+}
+.real-stats-row .stat-price { font-weight: 700; font-size: 1rem; color: #000; }
+.real-stats-row .stat-stars { color: #d4a017; font-size: 0.9rem; letter-spacing: 1px; }
+.real-stats-row .stat-rating-num { font-size: 0.8rem; color: #666; }
+.stat-reviews { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: #999; margin-bottom: 14px; }
+
+.shop-now-btn {
+    display: block;
+    text-align: center;
+    background: #000;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 13px 18px;
+    border-radius: 3px;
+    transition: background 0.25s ease, transform 0.2s ease;
+}
+.shop-now-btn:hover { background: #333; transform: translateY(-2px); }
+
+.reviews-panel {
+    grid-column: 1/-1;
+    margin-top: 30px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 36px;
+}
+.reviews-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 26px;
+    padding-bottom: 14px;
+}
+.reviews-tab {
+    background: none;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #999;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.reviews-tab:hover { color: #333; background: #f5f5f5; }
+.reviews-tab.active { color: #fff; background: var(--tab-color, #000); }
+
+.reviews-panel-content { display: none; animation: rp-fade 0.35s ease; }
+.reviews-panel-content.active { display: block; }
+@keyframes rp-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.rp-rating-block { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+.rp-rating-num { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 700; color: #111; line-height: 1; }
+.rp-rating-side { display: flex; flex-direction: column; gap: 4px; }
+.rp-stars { font-size: 1.1rem; letter-spacing: 2px; }
+.rp-review-count { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: #999; }
+.rp-no-rating { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; color: #aaa; font-style: italic; margin-bottom: 20px; }
+
+.rp-snippets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.rp-snippet-card {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 18px;
+    border-left: 3px solid #eee;
+}
+.rp-snippet-stars { font-size: 0.8rem; letter-spacing: 1px; display: block; margin-bottom: 8px; }
+.rp-snippet-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1rem; color: #333; line-height: 1.5; margin-bottom: 8px; }
+.rp-snippet-source { font-family: 'Montserrat', sans-serif; font-size: 0.65rem; color: #bbb; text-transform: uppercase; letter-spacing: 1px; }
+.rp-no-snippets { font-family: 'Montserrat', sans-serif; font-size: 0.8rem; color: #aaa; font-style: italic; }
+
+
+.compare-chart-wrap {
+    grid-column: 1/-1;
+    margin-top: 40px;
+    padding: 40px;
+    background: #fafafa;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.compare-chart-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: #333;
+    margin-bottom: 24px;
+}
+.compare-chart-canvas-box {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    height: 380px;
+}
+.compare-chart-footnote {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-top: 20px;
+    max-width: 480px;
+    line-height: 1.6;
+}
+
 .initial-msg { grid-column: 1/-1; text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: #ccc; font-style: italic; padding: 100px 0; }
 
 
@@ -1233,6 +1375,26 @@ h2.section-heading, .tool-text h3 {
     flex-direction: column;
     align-items: center;
     gap: 24px;
+}
+
+.fashion-quote-block {
+    max-width: 340px;
+    margin-top: 6px;
+}
+.fashion-quote-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+.fashion-quote-author {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    color: #999;
+    text-transform: uppercase;
 }
 
 /* Five-bar loader */

@@ -5,6 +5,7 @@ console.log('✦ AVANT Outfit Lab loaded');
 
 let currentImageUrl  = null;
 let currentShopItems = [];
+let currentCaption   = '';
 
 // ── Progress bar ──────────────────────────────────────────────────
 function setProgress(pct) {
@@ -120,8 +121,9 @@ async function generateOutfit() {
         const captionEl = document.getElementById('outfit-caption');
         if (captionEl) {
             const c = (data.caption || '').trim();
-            captionEl.textContent = c.length > 5 ? c : 
+            currentCaption = c.length > 5 ? c :
                 `A ${color || 'curated'} ${item || 'look'} in ${aesthetic || 'avant-garde'} style.`;
+            captionEl.textContent = currentCaption;
         }
         _renderChips(inputChips, currentShopItems);
 
@@ -377,8 +379,12 @@ async function syncToWardrobeGallery() {
 // ================================================================
 function shopThisLook() {
     if (!currentShopItems.length) { _showToast('Generate a look first.'); return; }
-    localStorage.setItem('avant_shopping_sync', JSON.stringify(currentShopItems));
-    const btn = document.getElementById('shop-btn');
+    localStorage.setItem('avant_shopping_sync', JSON.stringify({
+        items:   currentShopItems,
+        image:   currentImageUrl || '',
+        caption: currentCaption  || ''
+    }));
+    const btn = document.getElementById('shop-look-btn');
     if (btn) btn.textContent = 'REDIRECTING...';
     setTimeout(() => { window.location.href = 'shop.html'; }, 250);
 }
