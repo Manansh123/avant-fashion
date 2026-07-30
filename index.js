@@ -6,14 +6,17 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
-const crypto = require('crypto');
-const User = require('./models/User');
 const { OAuth2Client } = require('google-auth-library');
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const User = require('./models/User');
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'Avant')));
+
+// ================================================================
+// GOOGLE OAUTH CLIENT
+// ================================================================
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ================================================================
 // CLOUDINARY CONFIG
@@ -38,17 +41,8 @@ const upload = multer({
 });
 
 // ================================================================
-// MONGOOSE MODELS
+// MONGOOSE MODELS (Trend / Wardrobe — User model comes from ./models/User)
 // ================================================================
-const userSchema = new mongoose.Schema({
-    name:         { type: String, required: true, unique: true, lowercase: true, trim: true },
-    email:        { type: String, required: true, unique: true },
-    password:     { type: String }, // ab optional — sirf local signup ke liye zaroori
-    googleId:     { type: String, unique: true, sparse: true },
-    authProvider: { type: String, enum: ['local', 'google'], default: 'local' }
-});
-const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
-
 const trendSchema = new mongoose.Schema({
     userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name:         { type: String, required: true },
@@ -103,12 +97,9 @@ app.get('/', (req, res) => {
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            return res.status(400).json({ success: false, message: "All fields required!" });
-        }
-        const existingUser = await UserModel.findOne({ email });
+        const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ success: false, message: "Email already exists!" });
-        const newUser = new UserModel({ name, email, password });
+        const newUser = new User({ name, email, password });
         await newUser.save();
         res.status(201).json({ success: true, message: "Account created! Now Log In.", name: newUser.name });
     } catch (error) {
@@ -121,8 +112,11 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await UserModel.findOne({ email });
+        const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ success: false, message: "User not found. Please Sign Up." });
+        if (user.authProvider === 'google' && !user.password) {
+            return res.status(400).json({ success: false, message: "This account uses Google Sign-In. Please continue with Google." });
+        }
         if (user.password !== password) return res.status(401).json({ success: false, message: "Incorrect Password!" });
         res.status(200).json({ success: true, message: "Login successful! Welcome to AVANT.", name: user.name });
     } catch (error) {
@@ -130,51 +124,71 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Google Sign-In — frontend se ID-token (credential) aata hai, backend verify karta hai
-// Frontend ko Client ID chahiye Google button init karne ke liye — .env se serve karo,
-// hardcode nahi karte kisi HTML/JS file mein
-app.get('/api/config/google-client-id', (req, res) => {
-    res.json({ clientId: process.env.GOOGLE_CLIENT_ID || null });
-});
-
+// ================================================================
+// GOOGLE SIGN-IN
+// Frontend sends the ID token (credential) from Google Identity Services
+// ================================================================
 app.post('/api/auth/google', async (req, res) => {
     try {
         const { credential } = req.body;
-        if (!credential) return res.status(400).json({ success: false, message: "No credential provided" });
+        if (!credential) {
+            return res.status(400).json({ success: false, message: "Missing Google credential." });
+        }
 
-        // Google ke saath hi verify karo ki token genuine hai aur hamare Client ID ke liye issue hua
+        // Verify the token with Google
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
         });
         const payload = ticket.getPayload();
-        const email = payload.email;
-        const fullName = payload.name || email.split('@')[0];
 
-        let user = await UserModel.findOne({ email });
+        const email    = payload.email;
+        const googleId = payload.sub;
 
-        if (!user) {
-            // Naya user — email se ek unique username banao (existing schema mein
-            // 'name' hi username hai, unique hona chahiye)
-            let baseName = fullName.toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 20) || 'user';
-            let candidate = baseName;
-            let suffix = 0;
-            while (await UserModel.findOne({ name: candidate })) {
-                suffix++;
-                candidate = `${baseName}${suffix}`;
-            }
-            // Schema mein password required hai — Google users isse kabhi type nahi karenge,
-            // isliye random secure string daal do (kabhi use nahi hoga login ke liye)
-            const randomPassword = crypto.randomBytes(24).toString('hex');
-            user = new UserModel({ name: candidate, email, password: randomPassword });
-            await user.save();
-            console.log('✅ Naya Google user bana:', candidate);
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Google account has no email." });
         }
 
-        res.json({ success: true, message: `Welcome, ${user.name}!`, name: user.name });
-    } catch (err) {
-        console.error('❌ Google auth failed:', err.message);
-        res.status(401).json({ success: false, message: 'Google sign-in failed: ' + err.message });
+        // Find existing user by googleId OR email
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+        if (!user) {
+            // Build a unique username from Google name/email
+            let baseName = (payload.name || email.split('@')[0])
+                .toLowerCase()
+                .replace(/[^a-z0-9._]/g, '');
+            if (!baseName) baseName = 'user' + Date.now();
+
+            let candidateName = baseName;
+            let suffix = 1;
+            while (await User.findOne({ name: candidateName })) {
+                candidateName = `${baseName}${suffix}`;
+                suffix++;
+            }
+
+            user = new User({
+                name: candidateName,
+                email,
+                googleId,
+                authProvider: 'google'
+            });
+            await user.save();
+            console.log('✅ New Google user created:', user.name);
+        } else if (!user.googleId) {
+            // Existing local account, link Google to it
+            user.googleId = googleId;
+            await user.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Welcome, ${user.name}!`,
+            name: user.name
+        });
+
+    } catch (error) {
+        console.error('❌ Google auth error:', error.message);
+        res.status(401).json({ success: false, message: "Google authentication failed. Please try again." });
     }
 });
 
@@ -195,7 +209,7 @@ app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
 
         let savedToDb = false;
         if (userName) {
-            const user = await UserModel.findOne({ name: userName.toLowerCase() });
+            const user = await User.findOne({ name: userName.toLowerCase() });
             if (user) {
                 const trend = new Trend({
                     userId:       user._id,
@@ -227,7 +241,7 @@ app.get('/api/my-trends', async (req, res) => {
         const userName = req.headers['x-username'];
         if (!userName) return res.json({ success: true, trends: [] });
 
-        const user = await UserModel.findOne({ name: userName.toLowerCase() });
+        const user = await User.findOne({ name: userName.toLowerCase() });
         if (!user) return res.json({ success: true, trends: [] });
 
         const trends = await Trend.find({ userId: user._id }).sort({ createdAt: -1 });
@@ -242,7 +256,7 @@ app.delete('/api/my-trends/:id', async (req, res) => {
         const userName = req.headers['x-username'];
         if (!userName) return res.status(401).json({ success: false, message: "Not logged in" });
 
-        const user = await UserModel.findOne({ name: userName.toLowerCase() });
+        const user = await User.findOne({ name: userName.toLowerCase() });
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         const trend = await Trend.findOne({ _id: req.params.id, userId: user._id });
@@ -277,7 +291,7 @@ app.post('/api/upload-wardrobe', upload.single('image'), async (req, res) => {
         let itemId = null;
 
         if (userName) {
-            const user = await UserModel.findOne({ name: userName.toLowerCase() });
+            const user = await User.findOne({ name: userName.toLowerCase() });
             if (user) {
                 const item = new WardrobeItem({
                     userId:       user._id,
@@ -313,7 +327,7 @@ app.get('/api/my-wardrobe', async (req, res) => {
         const userName = req.headers['x-username'];
         if (!userName) return res.json({ success: true, items: [] });
 
-        const user = await UserModel.findOne({ name: userName.toLowerCase() });
+        const user = await User.findOne({ name: userName.toLowerCase() });
         if (!user) return res.json({ success: true, items: [] });
 
         const items = await WardrobeItem.find({ userId: user._id }).sort({ createdAt: -1 });
@@ -328,7 +342,7 @@ app.delete('/api/my-wardrobe/:id', async (req, res) => {
         const userName = req.headers['x-username'];
         if (!userName) return res.status(401).json({ success: false, message: "Not logged in" });
 
-        const user = await UserModel.findOne({ name: userName.toLowerCase() });
+        const user = await User.findOne({ name: userName.toLowerCase() });
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         const item = await WardrobeItem.findOne({ _id: req.params.id, userId: user._id });
@@ -354,359 +368,334 @@ app.get('/:page', (req, res) => {
 // PHASE 4 ROUTES — APPEND AT BOTTOM OF index.js
 // DO NOT touch anything above this block
 // ================================================================
-// ── FALLBACK: MINIMAL SAFE OUTFIT LOGIC (used only if Groq totally fails) ──
-// Old giant hardcoded pairing tables removed — Groq is confirmed working,
-// this only exists so the app doesn't crash if Groq/key is ever down.
-function hardcodedFallback(req, res) {
+// ── ROUTE 1: OUTFIT LOGIC (FIXED PARAMETERS SYNC) ──
+app.post('/api/generate-outfit-logic', (req, res) => {
     try {
-        const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
+        const { item, color, fabric, aesthetic, occasion, weather, footwear, additionalDetails } = req.body;
 
-        const genderNorm = (gender || 'unisex').toLowerCase().trim();
-        const neutralBottom   = 'Straight Fit Pants';
-        const neutralFootwear = footwear || 'White Sneakers';
-        const neutralAcc      = 'Minimal watch, Simple chain';
+        // ================================================================
+        // COMPLETE OUTFITS — No pairing needed, only accessories
+        // ================================================================
+        const completeOutfits = {
+            'Co-ord Set': {
+                description: 'Complete matching set',
+                accessories: ['Minimal chain or pendant', 'Clean white sneakers or loafers', 'Small crossbody bag', 'Sunglasses'],
+                footwear: 'White Sneakers or Loafers or Mules'
+            },
+            'Saree': {
+                description: 'Complete traditional outfit',
+                accessories: ['Statement jhumkas or chandbalis', 'Bangles or kada', 'Potli bag or clutch', 'Bindi'],
+                footwear: 'Heels or Kolhapuri Sandals or Juttis'
+            },
+            'Dress': {
+                description: 'Complete outfit',
+                accessories: ['Delicate necklace', 'Small handbag or clutch', 'Minimal earrings', 'Belt to cinch waist (optional)'],
+                footwear: 'Block Heels or Ballet Flats or White Sneakers'
+            },
+            'Kurta': {
+                description: 'Semi-complete — pairs with bottom',
+                bottom: ['Palazzo', 'Straight Pants', 'Churidar', 'Dhoti Pants'],
+                accessories: ['Oxidised earrings', 'Potli bag', 'Kolhapuri sandals or Juttis'],
+                footwear: 'Juttis or Kolhapuri Sandals'
+            },
+        };
 
-        const outfitDescription = `${color} ${fabric || ''} ${item} paired with ${neutralBottom}`.trim();
-        const imagePrompt = `High fashion editorial lookbook photography. Complete outfit: ${outfitDescription}. Footwear: ${neutralFootwear}. Accessories: ${neutralAcc}. Style aesthetic: ${aesthetic || 'modern minimal'}. Occasion: ${occasion || 'street style'}. Weather: ${weather || 'clear'}. Clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face.`;
+        // ================================================================
+        // BOTTOM PAIRING — Multiple options per item
+        // ================================================================
+        const bottomPairing = {
+            'Oversized T-Shirt': [
+                'Baggy Jeans', 'Cargo Pants', 'Parachute Pants',
+                'Biker Shorts', 'Wide Leg Joggers', 'Track Pants'
+            ],
+            'Graphic Tee': [
+                'Straight Fit Jeans', 'Cargo Pants', 'Joggers',
+                'Baggy Jeans', 'Chinos', 'Denim Shorts'
+            ],
+            'Plain Tee': [
+                'Chinos', 'Slim Fit Jeans', 'Trousers',
+                'Linen Pants', 'Cargo Pants', 'Denim Shorts'
+            ],
+            'Polo T-Shirt': [
+                'Chinos', 'Tailored Shorts', 'Slim Fit Jeans',
+                'Linen Pants', 'Bermuda Shorts', 'Trousers'
+            ],
+            'Tank Top': [
+                'Cargo Shorts', 'Linen Pants', 'Wide Leg Jeans',
+                'Biker Shorts', 'Mini Skirt', 'Denim Shorts'
+            ],
+            'Crop Top': [
+                'High Waist Jeans', 'Mini Skirt', 'Wide Leg Pants',
+                'Cargo Pants', 'Maxi Skirt', 'Palazzo'
+            ],
+            'Flannel Shirt': [
+                'Black Skinny Jeans', 'Dark Denim', 'Cargo Pants',
+                'Chinos', 'Straight Jeans', 'Joggers'
+            ],
+            'Oversized Shirt': [
+                'Biker Shorts', 'Straight Jeans', 'Linen Shorts',
+                'Mini Skirt', 'Slim Trousers', 'Cycling Shorts'
+            ],
+            'Hoodie': [
+                'Sweatpants', 'Cargo Pants', 'Straight Jeans',
+                'Joggers', 'Track Pants', 'Biker Shorts'
+            ],
+            'Zip Hoodie': [
+                'Joggers', 'Straight Jeans', 'Cargo Pants',
+                'Chinos', 'Track Pants', 'Sweatpants'
+            ],
+            'Oversized Hoodie': [
+                'Biker Shorts', 'Cargo Pants', 'Leggings',
+                'Cycling Shorts', 'Mini Skirt', 'Slim Jeans'
+            ],
+            'Varsity Jacket': [
+                'Straight Jeans', 'Joggers', 'Chinos',
+                'Track Pants', 'Cargo Pants', 'Mini Skirt'
+            ],
+            'Bomber Jacket': [
+                'Slim Fit Jeans', 'Cargo Pants', 'Chinos',
+                'Track Pants', 'Straight Jeans', 'Joggers'
+            ],
+            'Denim Jacket': [
+                'Black Jeans', 'Chinos', 'Floral Dress (layered)',
+                'Mini Skirt', 'White Jeans', 'Cargo Pants'
+            ],
+            'Leather Jacket': [
+                'Black Skinny Jeans', 'Dark Trousers', 'Straight Jeans',
+                'Leather Pants (tonal)', 'Mini Skirt', 'Cargo Pants'
+            ],
+            'Blazer': [
+                'Tailored Trousers', 'Wide Leg Pants', 'Straight Jeans',
+                'Mini Skirt', 'Cigarette Pants', 'Pleated Trousers'
+            ],
+            'Cargo Pants': [
+                'Graphic Tee', 'Oversized Shirt', 'Crop Top',
+                'Fitted Tank Top', 'Zip Hoodie', 'Cropped Sweatshirt'
+            ],
+            'Baggy Jeans': [
+                'Fitted Tee', 'Crop Top', 'Hoodie',
+                'Corset Top', 'Tank Top', 'Oversized Shirt'
+            ],
+            'Straight Fit Jeans': [
+                'Plain Tee', 'Blazer', 'Flannel Shirt',
+                'Polo', 'Crop Top', 'Knit Top'
+            ],
+            'Wide Leg Jeans': [
+                'Crop Top', 'Fitted Turtleneck', 'Corset Top',
+                'Knit Vest', 'Bralette with sheer top', 'Fitted Tank'
+            ],
+            'Parachute Pants': [
+                'Plain Tee', 'Zip Hoodie', 'Crop Top',
+                'Tank Top', 'Graphic Tee', 'Cropped Jacket'
+            ],
+            'Joggers': [
+                'Hoodie', 'Oversized Tee', 'Zip Hoodie',
+                'Fitted Tank', 'Cropped Sweatshirt', 'Jersey Top'
+            ],
+            'Mini Skirt': [
+                'Crop Top', 'Fitted Tee', 'Knotted Shirt',
+                'Corset Top', 'Sheer Top', 'Oversized Blazer'
+            ],
+        };
 
-        console.log('⚠ Using minimal hardcoded fallback (Groq unavailable)');
+        // ================================================================
+        // FOOTWEAR PAIRING — Multiple options per item
+        // ================================================================
+        const footwearPairing = {
+            'Oversized T-Shirt':  ['Chunky Sneakers', 'Air Force 1s', 'Jordans', 'Slides', 'Skate Shoes'],
+            'Graphic Tee':        ['White Sneakers', 'Vans', 'Converse', 'Skate Shoes', 'Low Top Sneakers'],
+            'Plain Tee':          ['White Sneakers', 'Loafers', 'Slip Ons', 'Clean Runners', 'Boat Shoes'],
+            'Polo T-Shirt':       ['Loafers', 'Boat Shoes', 'Clean White Sneakers', 'Derby Shoes', 'Moccasins'],
+            'Tank Top':           ['Slides', 'Flip Flops', 'Chunky Sneakers', 'Sandals', 'Running Shoes'],
+            'Crop Top':           ['Platform Sneakers', 'Block Heels', 'Mary Janes', 'Kitten Heels', 'White Sneakers'],
+            'Flannel Shirt':      ['Combat Boots', 'Chelsea Boots', 'Ankle Boots', 'Chunky Sneakers', 'Work Boots'],
+            'Oversized Shirt':    ['Loafers', 'Mules', 'Sneakers', 'Ballet Flats', 'Ankle Boots'],
+            'Hoodie':             ['Slides', 'High Tops', 'Chunky Sneakers', 'Running Shoes', 'Jordans'],
+            'Zip Hoodie':         ['High Tops', 'Chunky Sneakers', 'Running Shoes', 'Slides', 'Low Tops'],
+            'Oversized Hoodie':   ['Chunky Sneakers', 'Slides', 'Ugg Boots', 'Platform Sneakers', 'Air Force 1s'],
+            'Varsity Jacket':     ['High Tops', 'Jordans', 'Chunky Sneakers', 'Air Force 1s', 'Retro Runners'],
+            'Bomber Jacket':      ['White Sneakers', 'Chelsea Boots', 'High Tops', 'Derby Shoes', 'Loafers'],
+            'Denim Jacket':       ['White Sneakers', 'Ankle Boots', 'Converse', 'Chelsea Boots', 'Ballet Flats'],
+            'Leather Jacket':     ['Chelsea Boots', 'Combat Boots', 'Chunky Sneakers', 'Ankle Boots', 'Moto Boots'],
+            'Blazer':             ['Oxford Shoes', 'Loafers', 'Pointed Heels', 'Derby Shoes', 'Mules'],
+            'Kurta':              ['Juttis', 'Kolhapuri Sandals', 'Ethnic Sandals', 'Mojaris', 'Block Heels'],
+            'Cargo Pants':        ['Chunky Sneakers', 'Combat Boots', 'Jordans', 'High Tops', 'Work Boots'],
+            'Baggy Jeans':        ['Jordans', 'Chunky Sneakers', 'High Tops', 'Platform Shoes', 'Air Force 1s'],
+            'Straight Fit Jeans': ['White Sneakers', 'Loafers', 'Chelsea Boots', 'Oxford Shoes', 'Ankle Boots'],
+            'Wide Leg Jeans':     ['Platform Shoes', 'Block Heels', 'Boots', 'Mules', 'Kitten Heels'],
+            'Mini Skirt':         ['Mary Janes', 'Platform Sneakers', 'Kitten Heels', 'Ankle Boots', 'Ballet Flats'],
+            'Joggers':            ['Slides', 'Running Shoes', 'High Tops', 'Chunky Sneakers', 'Low Tops'],
+            'Parachute Pants':    ['Chunky Sneakers', 'High Tops', 'Air Force 1s', 'Jordans', 'Slides'],
+        };
+
+        // ================================================================
+        // ACCESSORIES — Multiple options per item
+        // ================================================================
+        const accPairing = {
+            'Oversized T-Shirt':  ['Baseball cap', 'Minimal silver chain', 'Crossbody bag', 'Bucket hat'],
+            'Graphic Tee':        ['Crossbody bag', 'Snapback', 'Wristband', 'Tote bag'],
+            'Plain Tee':          ['Minimal watch', 'Clean tote', 'Stud earrings', 'Simple bracelet'],
+            'Polo T-Shirt':       ['Classic watch', 'Belt', 'Clean tote', 'Aviator sunglasses'],
+            'Crop Top':           ['Layered necklaces', 'Hoop earrings', 'Mini bag', 'Sunglasses'],
+            'Flannel Shirt':      ['Watch', 'Beanie', 'Canvas tote', 'Simple ring'],
+            'Oversized Shirt':    ['Belt (to cinch)', 'Mini bag', 'Hoop earrings', 'Sunglasses'],
+            'Hoodie':             ['Beanie', 'Backpack', 'Simple chain', 'Cap'],
+            'Zip Hoodie':         ['Cap', 'Crossbody bag', 'Simple chain', 'Beanie'],
+            'Oversized Hoodie':   ['Beanie', 'Mini backpack', 'Hoop earrings', 'Phone bag'],
+            'Varsity Jacket':     ['Snapback', 'Gym bag', 'Simple chain', 'Wristband'],
+            'Bomber Jacket':      ['Aviator sunglasses', 'Small backpack', 'Chain necklace', 'Cap'],
+            'Denim Jacket':       ['Hoop earrings', 'Tote bag', 'Layered necklaces', 'Sunglasses'],
+            'Leather Jacket':     ['Silver chain', 'Dark sunglasses', 'Biker wallet', 'Silver rings'],
+            'Blazer':             ['Minimal watch', 'Structured tote', 'Stud earrings', 'Belt'],
+            'Kurta':              ['Oxidised earrings', 'Potli bag', 'Bangles', 'Dupatta'],
+            'Saree':              ['Jhumkas or Chandbalis', 'Potli bag or clutch', 'Bangles or Kada', 'Bindi'],
+            'Co-ord Set':         ['Minimal pendant', 'Small crossbody', 'Sunglasses', 'Hoop earrings'],
+            'Dress':              ['Delicate necklace', 'Clutch or mini bag', 'Stud earrings', 'Belt'],
+            'Mini Skirt':         ['Hoop earrings', 'Mini bag', 'Layered necklaces', 'Sunglasses'],
+            'Cargo Pants':        ['Cap', 'Crossbody or sling bag', 'Chain', 'Minimal watch'],
+            'Baggy Jeans':        ['Belt', 'Hoop earrings', 'Crossbody bag', 'Chain necklace'],
+        };
+
+        // ================================================================
+        // COLOR CONTRAST LOGIC
+        // ================================================================
+        const colorContrast = {
+            'Black':       ['White', 'Cream', 'Beige', 'Olive', 'Red', 'Camel', 'Grey'],
+            'White':       ['Black', 'Navy Blue', 'Olive Green', 'Camel', 'Brown', 'Grey'],
+            'Navy Blue':   ['White', 'Cream', 'Beige', 'Mustard', 'Camel', 'Light Grey'],
+            'Royal Blue':  ['White', 'Grey', 'Beige', 'Camel', 'Cream', 'Tan'],
+            'Sky Blue':    ['White', 'Beige', 'Brown', 'Grey', 'Cream'],
+            'Olive Green': ['Beige', 'White', 'Brown', 'Cream', 'Camel', 'Tan'],
+            'Dark Green':  ['Beige', 'Cream', 'Tan', 'White', 'Camel'],
+            'Sage Green':  ['White', 'Beige', 'Cream', 'Brown', 'Tan'],
+            'Beige':       ['Brown', 'Olive', 'Navy', 'Camel', 'White', 'Tan'],
+            'Grey':        ['Black', 'White', 'Maroon', 'Navy Blue', 'Burgundy'],
+            'Charcoal':    ['White', 'Cream', 'Light Grey', 'Beige'],
+            'Maroon':      ['Beige', 'Cream', 'Grey', 'Olive', 'Camel'],
+            'Red':         ['Black', 'White', 'Grey', 'Denim Blue', 'Beige'],
+            'Brown':       ['Beige', 'Cream', 'Olive', 'White', 'Camel', 'Tan'],
+            'Camel':       ['White', 'Black', 'Navy', 'Brown', 'Burgundy'],
+            'Mustard':     ['Navy Blue', 'Brown', 'Olive', 'White', 'Dark Grey'],
+            'Baby Pink':   ['Grey', 'White', 'Black', 'Navy', 'Beige'],
+            'Hot Pink':    ['Black', 'White', 'Grey', 'Navy'],
+            'Lavender':    ['White', 'Grey', 'Beige', 'Dusty Rose', 'Cream'],
+            'Purple':      ['Grey', 'White', 'Beige', 'Black', 'Cream'],
+            'Cream':       ['Brown', 'Camel', 'Olive', 'Navy', 'Tan'],
+            'Off White':   ['Brown', 'Camel', 'Olive', 'Navy', 'Tan'],
+            'Rust':        ['Beige', 'Cream', 'Brown', 'Olive', 'White'],
+            'Peach':       ['White', 'Beige', 'Mint', 'Grey', 'Brown'],
+            'Mint Green':  ['White', 'Beige', 'Grey', 'Coral', 'Cream'],
+            'Denim Blue':  ['White', 'Grey', 'Beige', 'Black', 'Cream'],
+        };
+
+        // ================================================================
+        // FABRIC CONTRAST
+        // ================================================================
+        const fabricContrast = {
+            'Ribbed Knit':   'Denim or Cotton Canvas',
+            'Silk':          'Denim or Linen',
+            'Denim':         'Soft Cotton or Ribbed Knit',
+            'Leather':       'Cotton or Linen',
+            'Velvet':        'Silk or Satin',
+            'Fleece':        'Denim or Canvas',
+            'Cotton Blend':  'Denim or Linen',
+            'Soft Cotton':   'Denim or Canvas',
+            'Linen':         'Cotton or Denim',
+            'Satin':         'Denim or Cotton',
+            'Tweed':         'Cotton or Silk',
+            'Chiffon':       'Satin or Cotton Lining',
+            'Nylon':         'Cotton or Fleece',
+            'Polyester':     'Cotton or Linen',
+            'Rayon':         'Denim or Cotton',
+            'Suede':         'Cotton or Linen',
+            'Canvas':        'Cotton or Linen',
+            'Stretch Denim': 'Cotton or Ribbed Knit',
+            'Heavy Denim':   'Soft Cotton or Ribbed Knit',
+            'Faux Leather':  'Cotton or Jersey',
+            'Cashmere':      'Silk or Fine Cotton',
+            'Wool':          'Cotton or Silk Lining',
+        };
+
+        function pick(arr) {
+            if (!arr || arr.length === 0) return null;
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function pickMultiple(arr, count = 2) {
+            if (!arr || arr.length === 0) return [];
+            const shuffled = [...arr].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, count);
+        }
+
+        const isComplete = completeOutfits.hasOwnProperty(item);
+
+        let suggestedBottom   = null;
+        let suggestedFootwear = footwear || null;
+        let suggestedAcc      = null;
+        let contrastColor     = null;
+        let bottomFabric      = fabricContrast[fabric] || 'Denim';
+        let outfitDescription = '';
+
+        if (isComplete) {
+            const completeData = completeOutfits[item];
+            suggestedAcc      = pickMultiple(completeData.accessories, 3).join(', ');
+            suggestedFootwear = footwear || completeData.footwear;
+
+            if (completeData.bottom) {
+                suggestedBottom = pick(completeData.bottom);
+            }
+
+            outfitDescription = item === 'Saree' || item === 'Co-ord Set' || item === 'Dress'
+                ? `${color} ${fabric || ''} ${item} — complete outfit, no separate pairing needed`
+                : `${color} ${item} with ${suggestedBottom}`;
+
+        } else {
+            const bottomOptions   = bottomPairing[item]   || ['Straight Fit Jeans', 'Chinos', 'Cargo Pants'];
+            const footwearOptions = footwearPairing[item] || ['White Sneakers', 'Loafers', 'Chunky Sneakers'];
+            const accOptions      = accPairing[item]      || ['Minimal watch', 'Simple chain', 'Clean bag'];
+            const colorOptions    = colorContrast[color]  || ['Beige', 'White', 'Grey'];
+
+            suggestedBottom   = pick(bottomOptions);
+            suggestedFootwear = footwear || pick(footwearOptions);
+            suggestedAcc      = pickMultiple(accOptions, 2).join(', ');
+            contrastColor     = pick(colorOptions);
+
+            outfitDescription = `${color} ${fabric || ''} ${item} paired with ${contrastColor} ${bottomFabric} ${suggestedBottom}`;
+        }
+
+        const imagePrompt = isComplete && !completeOutfits[item]?.bottom
+            ? `High fashion editorial photography. Full body shot of a ${color} ${fabric || ''} ${item}. Style: ${aesthetic || 'elegant contemporary'}. ${suggestedFootwear} footwear. Occasion: ${occasion || 'event'}. Clean white studio background, professional lighting, vertical portrait, no face visible.`
+            : `High fashion editorial lookbook photography. Complete outfit: ${outfitDescription}. Footwear: ${suggestedFootwear}. Accessories: ${suggestedAcc}. Style aesthetic: ${aesthetic || 'modern minimal'}. Occasion: ${occasion || 'street style'}. Weather: ${weather || 'clear'}. Clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face.`;
+
+        const caption = isComplete && !completeOutfits[item]?.bottom
+            ? `A stunning ${color} ${item} — complete in itself. Elevated with ${suggestedAcc} for a ${aesthetic || 'polished'} finish.`
+            : `${color} ${item} paired with ${contrastColor} ${suggestedBottom} — complementary colors for visual balance. ${suggestedFootwear} ties the ${aesthetic || 'clean'} look together.`;
+
+        const shoppingItems = [
+            `${color} ${item}`,
+            suggestedBottom ? `${contrastColor || ''} ${suggestedBottom}`.trim() : null,
+            suggestedFootwear?.split(' or ')[0],
+            suggestedAcc?.split(',')[0],
+        ].filter(Boolean);
 
         res.json({
             success: true,
             imagePrompt,
-            caption: `${color} ${item} styled for ${aesthetic || 'the occasion'}.`,
-            shoppingItems: [`${color} ${item}`, neutralBottom, neutralFootwear].filter(Boolean),
+            caption,
+            shoppingItems,
             pairingDetails: {
-                mainItem: `${color} ${item}`,
-                bottom: neutralBottom,
-                footwear: neutralFootwear,
-                accessory: neutralAcc,
-                colorLogic: 'Neutral / fallback',
-                isComplete: false
+                mainItem:   `${color} ${item}`,
+                bottom:     suggestedBottom ? `${contrastColor} ${suggestedBottom}` : 'Complete outfit',
+                footwear:   suggestedFootwear,
+                accessory:  suggestedAcc,
+                colorLogic: contrastColor ? `${color} × ${contrastColor}` : 'Monochrome / complete',
+                isComplete: isComplete
             }
         });
+
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
-}
-
-
-// ── ROUTE 1: OUTFIT LOGIC — Groq generates full pairing + image prompt ──
-// ── ROUTE 0: TREND STYLE TIPS — trend.js ka Groq call ab backend se (secure) ──
-// ── ROUTE 0b: SHOP COMPARE — real price/rating/reviews via SerpApi Google Shopping ──
-app.get('/api/shop-compare', async (req, res) => {
-    const query = (req.query.q || '').trim();
-    if (!query) return res.status(400).json({ success: false, message: 'q required' });
-
-    if (!process.env.SERPAPI_KEY) {
-        console.warn('⚠ SERPAPI_KEY missing in .env');
-        return res.status(500).json({ success: false, message: 'SERPAPI_KEY missing in .env' });
-    }
-
-    const targetSites = [
-        'amazon.in', 'flipkart.com', 'myntra.com', 'ajio.com',
-        'nykaafashion.com', 'tatacliq.com', 'snapdeal.com', 'meesho.com'
-    ];
-
-    // Query broader banao dusri try ke liye — pehla word (aksar color/adjective) hata do,
-    // taaki "blue denim jacket" → "denim jacket" jaisa broader/generic search ho
-    function broadenQuery(q) {
-        const words = q.trim().split(/\s+/);
-        return words.length > 2 ? words.slice(1).join(' ') : q;
-    }
-
-    async function fetchShoppingResults(q) {
-        const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(q)}&gl=in&hl=en&api_key=${process.env.SERPAPI_KEY}`;
-        const sRes = await fetch(url, { signal: AbortSignal.timeout(15000) });
-        const data = await sRes.json();
-        if (data.error) throw new Error(data.error);
-        return data.shopping_results || [];
-    }
-
-    // Kuch platform-naam SerpApi ke "source" field mein alag likhe ho sakte —
-    // e.g. domain "nykaafashion.com" hai lekin source shayad "Nykaa Fashion" ya "Nykaa" ho
-    const siteKeywords = {
-        'nykaafashion.com': ['nykaa'],
-        'tatacliq.com':     ['tatacliq', 'tata cliq'],
-        'snapdeal.com':     ['snapdeal'],
-        'meesho.com':       ['meesho']
-    };
-    function matchSite(results, site) {
-        const keywords = siteKeywords[site] || [site.split('.')[0]];
-        return results.find(r => {
-            const src = (r.source || '').toLowerCase();
-            return keywords.some(k => src.includes(k));
-        }) || null;
-    }
-
-    // Per-product detail lookup — rating/reviews missing ho toh ye fill karta hai,
-    // aur agar Google ke paas genuine review snippets hain toh wo bhi la sakta hai
-    async function fetchProductDetail(productId) {
-        if (!productId) return null;
-        try {
-            const url = `https://serpapi.com/search.json?engine=google_product&product_id=${encodeURIComponent(productId)}&gl=in&hl=en&api_key=${process.env.SERPAPI_KEY}`;
-            const pRes = await fetch(url, { signal: AbortSignal.timeout(8000) });
-            const data = await pRes.json();
-            if (data.error) return null;
-
-            const pr = data.product_results || {};
-            const snippets = (data.reviews_results?.reviews || [])
-                .slice(0, 3)
-                .map(rv => ({
-                    text: rv.snippet || rv.content || null,
-                    rating: rv.rating || null,
-                    source: rv.source || null
-                }))
-                .filter(s => s.text);
-
-            // Specifications mein se material/fabric wali entry dhoondo (agar hai)
-            const specs = pr.specifications || [];
-            const materialSpec = specs.find(s =>
-                /material|fabric/i.test(s.title || '')
-            );
-
-            return {
-                rating: pr.rating || null,
-                reviews: pr.reviews || null,
-                snippets,
-                material: materialSpec?.value || null
-            };
-        } catch (err) {
-            console.warn('⚠ Product detail fetch failed:', err.message);
-            return null;
-        }
-    }
-
-    try {
-        const firstPassResults = await fetchShoppingResults(query);
-
-        let matched = targetSites.map(site => ({ site, found: matchSite(firstPassResults, site) }));
-        const stillMissing = matched.filter(m => !m.found).map(m => m.site);
-
-        // Broader query — sirf ek extra call, sirf agar kuch platforms miss hue
-        if (stillMissing.length > 0) {
-            const broader = broadenQuery(query);
-            if (broader.toLowerCase() !== query.toLowerCase()) {
-                try {
-                    const secondPassResults = await fetchShoppingResults(broader);
-                    const secondSources = [...new Set(secondPassResults.map(r => r.source).filter(Boolean))];
-                    console.log(`🔍 Broadened retry ("${broader}") ne ye sources diye:`, secondSources.join(', ') || 'none');
-                    matched = matched.map(m => {
-                        if (m.found) return m;
-                        const retryFound = matchSite(secondPassResults, m.site);
-                        return retryFound ? { site: m.site, found: retryFound } : m;
-                    });
-                } catch (retryErr) {
-                    console.warn('⚠ Broadened retry failed, keeping first-pass results:', retryErr.message);
-                }
-            }
-        }
-
-        // Har matched platform ke liye — rating missing ho ya review-snippets chahiye,
-        // ek extra product-detail call lagao (parallel, taaki total time na badhe zyada)
-        const detailPromises = matched.map(m =>
-            m.found ? fetchProductDetail(m.found.product_id) : Promise.resolve(null)
-        );
-        const details = await Promise.all(detailPromises);
-
-        const results = matched.map(({ site, found }, i) => {
-            if (!found) return { site, available: false };
-            const detail = details[i];
-            return {
-                site,
-                available: true,
-                title: found.title,
-                price: found.price || null,
-                rating: found.rating || detail?.rating || null,
-                reviews: found.reviews || detail?.reviews || null,
-                snippets: detail?.snippets || [],
-                thumbnail: found.thumbnail || null,
-                link: found.product_link || found.link || null,
-                delivery: found.delivery || null,
-                badges: found.extensions || [],
-                condition: found.second_hand_condition || null,
-                material: detail?.material || null
-            };
-        });
-
-        const uniqueSources = [...new Set(firstPassResults.map(r => r.source).filter(Boolean))];
-        console.log(`🔍 SerpApi ne ye sources diye (query: "${query}"):`, uniqueSources.join(', ') || 'none');
-        console.log(`✅ SerpApi shop-compare: ${results.filter(m => m.available).length}/${targetSites.length} platforms matched, ${results.filter(m => m.rating).length} have rating, ${results.reduce((a,r)=>a+(r.snippets?.length||0),0)} review snippets total`);
-        return res.json({ success: true, query, results });
-    } catch (err) {
-        console.error('❌ shop-compare failed:', err.message);
-        return res.status(500).json({ success: false, message: err.message });
-    }
-});
-
-
-app.post('/api/trend-style-tips', async (req, res) => {
-    const { style } = req.body;
-    if (!style) return res.status(400).json({ success: false, message: 'style required' });
-
-    if (!process.env.GROQ_API_KEY_TRENDS) {
-        console.warn('⚠ GROQ_API_KEY_TRENDS missing in .env');
-        return res.status(500).json({ success: false, message: 'GROQ_API_KEY_TRENDS missing in .env' });
-    }
-
-    const prompt = `You are a fashion stylist for AVANT. Give exactly 5 styling tips for the "${style}" aesthetic for 2026. Plain text only. No markdown, no bold, no asterisks. Number each tip: 1. tip text. One tip per line. Output ONLY the 5 numbered tips.`;
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
-
-    for (const model of models) {
-        try {
-            const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY_TRENDS}` },
-                body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 })
-            });
-            const json = await gRes.json();
-            if (json?.error) {
-                if (json.error.message?.includes('decommissioned')) { console.warn(`⚠ ${model} decommissioned`); continue; }
-                console.warn(`⚠ ${model}: ${json.error.message}`);
-                continue;
-            }
-            const text = json.choices?.[0]?.message?.content || '';
-            if (text.trim().length > 10) {
-                console.log(`✅ Trend tips (${model}) success`);
-                return res.json({ success: true, text });
-            }
-        } catch (err) {
-            console.warn(`⚠ ${model} failed:`, err.message);
-        }
-    }
-    console.error('❌ All Groq models failed for trend tips');
-    return res.status(500).json({ success: false, message: 'All Groq models failed' });
-});
-
-
-app.post('/api/generate-outfit-logic', async (req, res) => {
-    const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
-
-    if (!process.env.GROQ_API_KEY_OUTFIT) {
-        console.warn('⚠ GROQ_API_KEY_OUTFIT missing, using hardcoded fallback');
-        return hardcodedFallback(req, res);
-    }
-
-    const genderNorm = (gender || 'unisex').toLowerCase().trim();
-    const isUnisex = genderNorm === 'unisex';
-    console.log(`🎯 Outfit request — gender received: "${gender}" → normalized: "${genderNorm}" → path: ${isUnisex ? 'DUAL (unisex)' : 'SINGLE (' + genderNorm + ')'}`);
-    const garmentDesc = `${color} ${fabric || ''} ${item}`.replace(/\s+/g, ' ').trim();
-
-    const sysPrompt = isUnisex
-        ? `You are a fashion stylist AI. The user's main garment is: "${garmentDesc}". This EXACT garment is worn by BOTH models — identical color, identical fabric, identical print/pattern, identical fit. Design TWO pairings around this same garment: one for a male model, one for a female model. Each model's bottom/footwear/accessories are chosen INDEPENDENTLY — they can end up the same or different, whichever genuinely fits best. Do not force a difference and do not force sameness.
-
-CRITICAL for imagePrompt: use the EXACT SAME words for the garment's color/fabric/pattern in both model descriptions — do not use synonyms or reinterpret the color (e.g. if user said "Mint Green", write "Mint Green" both times, never "teal" for one and "forest green" for the other). Any color/pattern drift between the two models is a failure.
-
-CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE, DRAPE, and SHEEN so it looks visually distinct in the image. Examples: Georgette → "flowing sheer georgette with soft, light drape and subtle crinkle texture"; Nylon → "smooth glossy nylon with a slight synthetic sheen and technical finish"; Silk → "lustrous silk with a smooth liquid sheen and fluid drape"; Cotton → "structured matte cotton with a natural woven texture"; Denim → "sturdy denim with visible twill weave and slight stiffness"; Linen → "textured linen with a relaxed, slightly wrinkled matte finish"; Leather → "smooth leather with visible sheen and structured stiffness". Match the given fabric to its real-world texture, don't default everything to a plain/cotton look.
-
-Output ONLY valid JSON, no prose, no markdown fences:
-{
-  "male":   { "bottom": "string or null", "footwear": "string", "accessories": "2-3 items, comma separated" },
-  "female": { "bottom": "string or null", "footwear": "string", "accessories": "2-3 items, comma separated" },
-  "contrastColor": "string or null",
-  "caption": "1-2 line stylist caption mentioning both looks",
-  "imagePrompt": "MAX 550 characters. FULL ready-to-use fashion editorial image generation prompt. Two models standing side by side, one male one female, BOTH wearing the exact same ${garmentDesc} — same color words used for both, no variation. Each with their own bottom/footwear/accessories as specified above. Style aesthetic, occasion, weather mood included. End with: clean white studio background, full body shot, sharp clothing detail, no face visible."
-}`
-        : `You are a fashion stylist AI. Given user's clothing pick, design a complete complementary outfit and output ONLY valid JSON, no prose, no markdown fences:
-{
-  "bottom": "string or null (null if item is already complete like Saree/Dress/Co-ord)",
-  "footwear": "string",
-  "accessories": "2-3 items, comma separated",
-  "contrastColor": "string or null",
-  "caption": "1-2 line stylist caption for the user",
-  "imagePrompt": "MAX 550 characters. FULL ready-to-use fashion editorial image generation prompt. Must include: garment, fabric, color, paired bottom (if any), footwear, accessories, aesthetic, occasion, weather mood. End with: clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face visible."
-}
-
-The garment (item, color, fabric) is FIXED regardless of gender — pair normally for a ${genderNorm} presentation.
-
-CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE, DRAPE, and SHEEN in the imagePrompt so it looks visually distinct in the image. Examples: Georgette → "flowing sheer georgette with soft, light drape and subtle crinkle texture"; Nylon → "smooth glossy nylon with a slight synthetic sheen and technical finish"; Silk → "lustrous silk with a smooth liquid sheen and fluid drape"; Cotton → "structured matte cotton with a natural woven texture"; Denim → "sturdy denim with visible twill weave and slight stiffness"; Linen → "textured linen with a relaxed, slightly wrinkled matte finish"; Leather → "smooth leather with visible sheen and structured stiffness". Match the given fabric to its real-world texture, don't default everything to a plain/cotton look.`;
-
-    const userMsg = `item:${item}, color:${color}, fabric:${fabric}, aesthetic:${aesthetic}, occasion:${occasion}, weather:${weather}, footwear:${footwear || 'suggest one'}, gender:${genderNorm}, notes:${additionalDetails || 'none'}`;
-
-    // Same fallback chain as trend.js
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
-
-    for (const model of models) {
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000); // 8s cap per model
-
-            const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY_OUTFIT}` },
-                body: JSON.stringify({
-                    model,
-                    messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }],
-                    max_tokens: 400,
-                    temperature: 0.8
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(timeout);
-
-            const json = await gRes.json();
-            if (json?.error) { console.warn(`⚠ ${model}: ${json.error.message}`); continue; }
-
-            const raw = json.choices?.[0]?.message?.content || '';
-            const match = raw.match(/\{[\s\S]*\}/);
-            if (!match) { console.warn(`⚠ ${model}: no JSON in response`); continue; }
-
-            const parsed = JSON.parse(match[0]);
-            if (!parsed.imagePrompt) { console.warn(`⚠ ${model}: missing imagePrompt`); continue; }
-
-            console.log(`✅ Groq (${model}) generated outfit pairing`);
-
-            if (isUnisex) {
-                if (!parsed.male || !parsed.female) { console.warn(`⚠ ${model}: missing male/female pairing`); continue; }
-                console.log('🧪 Debug — unisex dual pairing | male:', parsed.male, '| female:', parsed.female);
-                return res.json({
-                    success: true,
-                    imagePrompt: parsed.imagePrompt,
-                    caption: parsed.caption || `${color} ${item} styled two ways for ${aesthetic || 'the occasion'}.`,
-                    shoppingItems: [
-                        `${color} ${item}`,
-                        parsed.male.bottom, parsed.male.footwear,
-                        parsed.female.bottom, parsed.female.footwear,
-                        ...(parsed.male.accessories?.split(',').map(a => a.trim()).filter(Boolean) || []),
-                        ...(parsed.female.accessories?.split(',').map(a => a.trim()).filter(Boolean) || [])
-                    ].filter(Boolean),
-                    pairingDetails: {
-                        mainItem: `${color} ${item}`,
-                        male: parsed.male,
-                        female: parsed.female,
-                        colorLogic: parsed.contrastColor ? `${color} × ${parsed.contrastColor}` : 'Monochrome / complete',
-                        isComplete: !parsed.male.bottom && !parsed.female.bottom
-                    }
-                });
-            }
-
-            console.log('🧪 Debug — gender:', genderNorm, '| bottom:', parsed.bottom, '| footwear:', parsed.footwear, '| accessories:', parsed.accessories);
-            return res.json({
-                success: true,
-                imagePrompt: parsed.imagePrompt,
-                caption: parsed.caption || `${color} ${item} styled for ${aesthetic || 'the occasion'}.`,
-                shoppingItems: [
-                    `${color} ${item}`,
-                    parsed.bottom,
-                    parsed.footwear,
-                    ...(parsed.accessories?.split(',').map(a => a.trim()).filter(Boolean) || [])
-                ].filter(Boolean),
-                pairingDetails: {
-                    mainItem: `${color} ${item}`,
-                    bottom: parsed.bottom || 'Complete outfit',
-                    footwear: parsed.footwear,
-                    accessory: parsed.accessories,
-                    colorLogic: parsed.contrastColor ? `${color} × ${parsed.contrastColor}` : 'Monochrome / complete',
-                    isComplete: !parsed.bottom
-                }
-            });
-        } catch (err) {
-            console.warn(`⚠ ${model} failed:`, err.message);
-        }
-    }
-
-    console.error('❌ All Groq models failed, falling back to hardcoded sheet');
-    return hardcodedFallback(req, res);
 });
 
 
@@ -716,28 +705,15 @@ app.get('/api/proxy-image', async (req, res) => {
     const width     = parseInt(req.query.width)  || 768;
     const height    = parseInt(req.query.height) || 1024;
     const genderRaw = (req.query.gender || '').toLowerCase().trim();
-    const mode      = (req.query.mode || '').toLowerCase().trim();
     const genderTerm = genderRaw === 'men' || genderRaw === 'male' ? 'male'
                      : genderRaw === 'women' || genderRaw === 'female' ? 'female'
                      : 'person';
 
     const seed = Math.floor(Math.random() * 999999);
-    let finalPrompt = mode === 'product'
-        ? `e-commerce product photography, ${prompt}, single garment flat lay or on invisible mannequin, plain white background, studio lighting, sharp detail, no person, no model, no text, no logo, no watermark`
-        : genderTerm === 'person' && genderRaw === 'unisex'
-        ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
-        : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
-
-    // Cloudflare ka flux-1-schnell bahut lambe prompt pe "Invalid input" de deta —
-    // safe length tak cap karo, word-boundary pe cut karo (beech shabd mein nahi)
-    const MAX_PROMPT_LEN = 900;
-    if (finalPrompt.length > MAX_PROMPT_LEN) {
-        finalPrompt = finalPrompt.slice(0, MAX_PROMPT_LEN);
-        finalPrompt = finalPrompt.slice(0, finalPrompt.lastIndexOf(' ')); // beech shabd mein mat kaato
-    }
+    const finalPrompt = `fashion editorial photography, single ${genderTerm} model, full body portrait, ${prompt}, clean white studio background, vertical portrait, no face`;
 
     console.log('☁️ Cloudflare Workers AI call...');
-    console.log(`📝 Prompt (${finalPrompt.length} chars):`, finalPrompt);
+    console.log('📝 Prompt:', finalPrompt.slice(0, 80) + '...');
 
     const CF_TOKEN   = process.env.CF_TOKEN;
     const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
@@ -777,11 +753,9 @@ app.get('/api/proxy-image', async (req, res) => {
 
             if (cfRes.statusCode !== 200) {
                 console.error('❌ CF Error:', buf.toString().slice(0, 200));
-                // Picsum fallback
                 return servePicsum(res, seed, width, height);
             }
 
-            // Case 1: Direct image response
             if (ct.startsWith('image/')) {
                 console.log('✅ Cloudflare direct image! Bytes:', buf.length);
                 res.setHeader('Content-Type', ct);
@@ -789,7 +763,6 @@ app.get('/api/proxy-image', async (req, res) => {
                 return res.send(buf);
             }
 
-            // Case 2: JSON with base64
             try {
                 const json = JSON.parse(buf.toString());
                 if (json.result?.image) {
@@ -804,7 +777,6 @@ app.get('/api/proxy-image', async (req, res) => {
                 console.error('❌ CF parse error:', e.message);
             }
 
-            // Fallback
             return servePicsum(res, seed, width, height);
         });
     });
@@ -825,32 +797,28 @@ app.get('/api/proxy-image', async (req, res) => {
 });
 
 
-// Picsum helper — sirf last resort
 function servePicsum(res, seed, width, height) {
     console.log('📸 Unsplash fashion fallback...');
-    
-    // Fashion specific Unsplash photo IDs - yeh sab fashion/outfit images hain
+
     const fashionPhotos = [
-        'photo-1539109136881-3be0616acf4b', // fashion model street
-        'photo-1515886657613-9f3515b0c78f', // fashion model studio
-        'photo-1469334031218-e382a71b716b', // fashion editorial
-        'photo-1558618666-fcd25c85cd64', // outfit flat lay
-        'photo-1496747611176-843222e1e57c', // model walking
-        'photo-1509631179647-0177331693ae', // fashion shoot
-        'photo-1581044777550-4cfa60707c03', // editorial fashion
-        'photo-1475180098004-ca77a66827be', // model outfit
-        'photo-1434389677669-e08b4cac3105', // fashion street
-        'photo-1485968579580-b6d095142e6e', // model lookbook
+        'photo-1539109136881-3be0616acf4b',
+        'photo-1515886657613-9f3515b0c78f',
+        'photo-1469334031218-e382a71b716b',
+        'photo-1558618666-fcd25c85cd64',
+        'photo-1496747611176-843222e1e57c',
+        'photo-1509631179647-0177331693ae',
+        'photo-1581044777550-4cfa60707c03',
+        'photo-1475180098004-ca77a66827be',
+        'photo-1434389677669-e08b4cac3105',
+        'photo-1485968579580-b6d095142e6e',
     ];
-    
-    // Seed se consistent but varied selection
+
     const photoId = fashionPhotos[seed % fashionPhotos.length];
     const url = `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${width}&h=${height}&q=80`;
-    
+
     console.log('📸 Using Unsplash fashion photo:', photoId);
-    
+
     https.get(url, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (pRes) => {
-        // Unsplash redirects karta hai - follow karna padega
         if (pRes.statusCode === 301 || pRes.statusCode === 302) {
             const redirectUrl = pRes.headers.location;
             https.get(redirectUrl, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (rRes) => {
@@ -864,7 +832,7 @@ function servePicsum(res, seed, width, height) {
             }).on('error', () => serveHardcodedFallback(res));
             return;
         }
-        
+
         const chunks = [];
         pRes.on('data', c => chunks.push(c));
         pRes.on('end', () => {
@@ -875,7 +843,6 @@ function servePicsum(res, seed, width, height) {
     }).on('error', () => serveHardcodedFallback(res));
 }
 
-// Last last resort - agar Unsplash bhi fail ho
 function serveHardcodedFallback(res) {
     console.log('⚠️ All fallbacks failed');
     res.status(500).json({ success: false, message: 'Image generation failed. Please retry.' });

@@ -10,6 +10,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
         rel="stylesheet">
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body class="login-bg">
@@ -26,11 +29,21 @@
                     <p id="authSubtitle">Enter your details to access the AVANT ecosystem.</p>
                 </div>
 
-                <button class="social-auth-btn">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/500px-Google_%22G%22_logo.svg.png"
-                        alt="Google">
-                    Continue with Google
-                </button>
+                <!-- ===== GOOGLE SIGN-IN BUTTON ===== -->
+                <div id="g_id_onload"
+                     data-client_id="942996421769-63ee9hi5epu3t0qcjl27dreovubp5a43.apps.googleusercontent.com"
+                     data-callback="handleGoogleSignIn"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="outline"
+                     data-text="continue_with"
+                     data-size="large"
+                     data-logo_alignment="left"
+                     style="display:flex; justify-content:center; margin-bottom: 10px;">
+                </div>
 
                 <div class="auth-divider"><span>Or email</span></div>
 
@@ -78,13 +91,11 @@
         const password = document.querySelector('#userPassword');
 
         togglePassword.addEventListener('click', function (e) {
-            // Toggle the type attribute
             const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
             password.setAttribute('type', type);
-
-            // Toggle the button text
             this.textContent = type === 'password' ? 'SHOW' : 'HIDE';
         });
+
         function toggleAuthMode(e) {
             e.preventDefault();
             isLoginMode = !isLoginMode;
@@ -99,27 +110,23 @@
                 title.innerText = "Log In";
                 submitBtn.innerText = "Log In";
                 nameGroup.style.display = "none";
-
-                // --- YE FIX HAI ---
-                nameInput.required = false; // Login mein isse false hona hi chahiye
-                nameInput.value = ""; // Purana data saaf kar do
-
+                nameInput.required = false;
+                nameInput.value = "";
                 toggleLink.innerHTML = 'No account? <a href="#" onclick="toggleAuthMode(event)">Sign Up here</a>';
             } else {
                 title.innerText = "Sign Up";
                 submitBtn.innerText = "Create Account";
                 nameGroup.style.display = "block";
-
-                // --- YE FIX HAI ---
-                nameInput.required = true; // Signup mein zaroori hai
-
+                nameInput.required = true;
                 toggleLink.innerHTML = 'Already have an account? <a href="#" onclick="toggleAuthMode(event)">Log In here</a>';
             }
         }
 
+        // ================================================================
+        // EMAIL / PASSWORD LOGIN + SIGNUP
+        // ================================================================
         document.getElementById('mainLoginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            console.log("Form submit trigger hua!"); // Debug 1
 
             const email = document.getElementById('userEmail').value;
             const password = document.getElementById('userPassword').value;
@@ -136,8 +143,6 @@
             const endpoint = isLoginMode ? '/api/login' : '/api/signup';
             const payload = isLoginMode ? { email, password } : { name: nameInput, email, password };
 
-            console.log("Sending to:", endpoint, payload); // Debug 2
-
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -145,23 +150,10 @@
                     body: JSON.stringify(payload)
                 });
 
-                console.log("Response receive hua:", response.status); // Debug 3
-
                 const data = await response.json();
-                console.log("Server Data:", data); // Debug 4
 
                 if (response.ok) {
-                    // Pehle localStorage set karenge
-                    if (data.name) {
-                        const cleanName = data.name.toLowerCase().replace(/\s+/g, '');
-                        localStorage.setItem('avantUserName', cleanName);
-                        console.log("Name saved to storage:", cleanName);
-                    }
-
-                    alert(data.message);
-
-                    // Alert ke turant baad redirect
-                    window.location.replace("index.html");
+                    completeLogin(data);
                 } else {
                     alert("Error: " + data.message);
                 }
@@ -170,6 +162,43 @@
                 alert("Server connection failed! Check console (F12).");
             }
         });
+
+        // ================================================================
+        // GOOGLE SIGN-IN CALLBACK
+        // Called automatically by Google Identity Services after user picks account
+        // ================================================================
+        async function handleGoogleSignIn(response) {
+            try {
+                const res = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    completeLogin(data);
+                } else {
+                    alert("Google Sign-In failed: " + (data.message || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error("Google Sign-In error:", err);
+                alert("Google Sign-In failed. Check console (F12).");
+            }
+        }
+
+        // ================================================================
+        // SHARED: finish login (used by both email and Google flows)
+        // ================================================================
+        function completeLogin(data) {
+            if (data.name) {
+                const cleanName = data.name.toLowerCase().replace(/\s+/g, '');
+                localStorage.setItem('avantUserName', cleanName);
+            }
+            alert(data.message);
+            window.location.replace("index.html");
+        }
     </script>
 </body>
 
