@@ -11,8 +11,18 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;600;700&display=swap"
         rel="stylesheet">
 
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        /* Google's iframe button ignores our CSS, so we size/shape it via
+           the JS config instead — this wrapper just controls layout spacing
+           and gives it the same footprint the old custom button had. */
+        #googleSignInBtn {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 4px;
+            min-height: 44px; /* stop the layout from jumping while the iframe loads */
+        }
+    </style>
 </head>
 
 <body class="login-bg">
@@ -29,21 +39,8 @@
                     <p id="authSubtitle">Enter your details to access the AVANT ecosystem.</p>
                 </div>
 
-                <!-- ===== GOOGLE SIGN-IN BUTTON ===== -->
-                <div id="g_id_onload"
-                     data-client_id="942996421769-63ee9hi5epu3t0qcjl27dreovubp5a43.apps.googleusercontent.com"
-                     data-callback="handleGoogleSignIn"
-                     data-auto_prompt="false">
-                </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="pill"
-                     data-theme="outline"
-                     data-text="continue_with"
-                     data-size="large"
-                     data-logo_alignment="left"
-                     style="display:flex; justify-content:center; margin-bottom: 10px;">
-                </div>
+                <!-- Real Google Identity Services button renders here -->
+                <div id="googleSignInBtn"></div>
 
                 <div class="auth-divider"><span>Or email</span></div>
 
@@ -85,6 +82,9 @@
         </div>
     </div>
 
+    <!-- Google Identity Services library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <script>
         let isLoginMode = true;
         const togglePassword = document.querySelector('#togglePassword');
@@ -122,9 +122,6 @@
             }
         }
 
-        // ================================================================
-        // EMAIL / PASSWORD LOGIN + SIGNUP
-        // ================================================================
         document.getElementById('mainLoginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
@@ -153,7 +150,12 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    completeLogin(data);
+                    if (data.name) {
+                        const cleanName = data.name.toLowerCase().replace(/\s+/g, '');
+                        localStorage.setItem('avantUserName', cleanName);
+                    }
+                    alert(data.message);
+                    window.location.replace("index.html");
                 } else {
                     alert("Error: " + data.message);
                 }
@@ -164,41 +166,74 @@
         });
 
         // ================================================================
-        // GOOGLE SIGN-IN CALLBACK
-        // Called automatically by Google Identity Services after user picks account
+        // GOOGLE SIGN-IN — fetch Client ID from server (never hardcoded),
+        // then init + render the button once the GSI script is ready.
         // ================================================================
-        async function handleGoogleSignIn(response) {
+        async function handleGoogleCredential(response) {
             try {
                 const res = await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ credential: response.credential })
                 });
-
                 const data = await res.json();
 
                 if (res.ok && data.success) {
-                    completeLogin(data);
+                    localStorage.setItem('avantUserName', data.name.toLowerCase());
+                    alert(data.message);
+                    window.location.replace("index.html");
                 } else {
                     alert("Google Sign-In failed: " + (data.message || 'Unknown error'));
                 }
             } catch (err) {
-                console.error("Google Sign-In error:", err);
-                alert("Google Sign-In failed. Check console (F12).");
+                console.error("Google auth request failed:", err);
+                alert("Server connection failed during Google Sign-In.");
             }
         }
 
-        // ================================================================
-        // SHARED: finish login (used by both email and Google flows)
-        // ================================================================
-        function completeLogin(data) {
-            if (data.name) {
-                const cleanName = data.name.toLowerCase().replace(/\s+/g, '');
-                localStorage.setItem('avantUserName', cleanName);
+        async function initGoogleSignIn() {
+            try {
+                const cfgRes = await fetch('/api/config/google-client-id');
+                const cfg = await cfgRes.json();
+
+                if (!cfg.clientId) {
+                    console.warn('⚠ GOOGLE_CLIENT_ID not set in .env — hiding Google button');
+                    document.getElementById('googleSignInBtn').style.display = 'none';
+                    return;
+                }
+
+                if (!window.google || !google.accounts || !google.accounts.id) {
+                    // GSI script hasn't loaded yet — retry shortly
+                    setTimeout(initGoogleSignIn, 200);
+                    return;
+                }
+
+                google.accounts.id.initialize({
+                    client_id: cfg.clientId,
+                    callback: handleGoogleCredential
+                });
+
+                // Size/shape configured here since Google's iframe ignores our CSS —
+                // 'pill' + 'large' + explicit width matches the old custom button's footprint.
+                google.accounts.id.renderButton(
+                    document.getElementById('googleSignInBtn'),
+                    {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        shape: 'pill',
+                        text: 'continue_with',
+                        logo_alignment: 'left',
+                        width: 400
+                    }
+                );
+            } catch (err) {
+                console.error('Google Sign-In init failed:', err);
+                document.getElementById('googleSignInBtn').style.display = 'none';
             }
-            alert(data.message);
-            window.location.replace("index.html");
         }
+
+        initGoogleSignIn();
     </script>
 </body>
 

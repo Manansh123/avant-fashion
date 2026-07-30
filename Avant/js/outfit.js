@@ -175,7 +175,7 @@ function _loadProxyImage(proxyUrl) {
             <div class="loading-bars">
                 <span></span><span></span><span></span><span></span><span></span>
             </div>
-            <p class="loading-label">LOADING IMAGE...</p>
+            
         </div>`;
     showFashionQuote(spinner.querySelector('.mirror-loading-inner'));
 

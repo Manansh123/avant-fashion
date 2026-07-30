@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true,   // username hi hai, unique hona chahiye
+        unique: true, // Kyuki name hi username hai, toh ye unique hona chahiye
         lowercase: true,
         trim: true,
     },
@@ -14,16 +14,14 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
     password: {
-        type: String,
-        // Google users ke liye password zaroori nahi
-        required: function () {
-            return this.authProvider !== 'google';
-        }
+        type: String
+        // NOTE: not required anymore — Google Sign-In users never set a password.
+        // Local signup still always sends one (enforced in index.js /api/signup).
     },
     googleId: {
         type: String,
         unique: true,
-        sparse: true   // sirf Google users ke liye set hoga
+        sparse: true // allows many docs with no googleId without violating uniqueness
     },
     authProvider: {
         type: String,
