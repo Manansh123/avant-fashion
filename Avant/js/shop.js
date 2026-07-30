@@ -71,7 +71,7 @@ async function fetchRealComparison(query) {
 }
 
 // ================================================================
-// MAIN SEARCH RENDERER
+// MAIN SEARCH RENDERER (single item)
 // ================================================================
 let _searchToken = 0; // race-condition guard — purana search kabhi naye ko overwrite na kare
 
@@ -114,6 +114,70 @@ async function performSearch(queryOverride) {
     } else {
         renderFallbackLinks(resultsGrid, query);
     }
+
+    resultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ================================================================
+// MULTI-ITEM SEARCH RENDERER — "Shop this Look" ke liye
+// Look ke saare items (main garment + bottom + footwear + accessory) ek
+// saath, parallel mein search karta hai aur sabke results ek hi grid mein,
+// item-wise heading ke saath, combine karke dikhata hai.
+// ================================================================
+async function performMultiSearch(itemList) {
+    const resultsGrid = document.getElementById('shop-results');
+    const searchInput = document.getElementById('shop-search');
+    if (!resultsGrid || !Array.isArray(itemList) || itemList.length === 0) return;
+
+    const myToken = ++_searchToken;
+
+    if (searchInput) searchInput.value = itemList.join(', ');
+
+    // Ek hi loading indicator — poori list ke liye
+    resultsGrid.innerHTML = `
+        <div class="shop-loading-state">
+            <div class="loading-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+        </div>`;
+    showFashionQuote(resultsGrid.querySelector('.shop-loading-state'));
+    resultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Har item ka comparison data parallel mein fetch karo — sab ek saath, ek hi baar mein
+    const allResults = await Promise.all(
+        itemList.map(async (item) => ({ item, data: await fetchRealComparison(item) }))
+    );
+
+    // Beech mein koi naya search shuru ho gaya ho toh ye purana discard karo
+    if (myToken !== _searchToken) return;
+
+    resultsGrid.innerHTML = '';
+
+    allResults.forEach(({ item, data }) => {
+        // Har item ke liye ek chhota section heading, taaki pata chale
+        // kaunse results kis garment ke hain
+        const heading = document.createElement('div');
+        heading.style.cssText = `
+            grid-column: 1/-1;
+            font-family:'Montserrat',sans-serif;
+            font-size:0.72rem;
+            font-weight:700;
+            letter-spacing:3px;
+            text-transform:uppercase;
+            color:#000;
+            border-top:1px solid #eee;
+            padding-top:22px;
+            margin-top:10px;
+        `;
+        heading.textContent = `✦ ${item} ✦`;
+        resultsGrid.appendChild(heading);
+
+        if (data) {
+            renderRealComparison(resultsGrid, item, data);
+        } else {
+            renderFallbackLinks(resultsGrid, item);
+        }
+    });
 
     resultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -420,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             resultsSection.prepend(banner);
 
-            // Render a pill per item
+            // Render a pill per item (isse ek individual item dobara search kar sakte ho)
             const pillsWrap = document.getElementById('sync-pills');
             items.forEach(item => {
                 if (!item || !item.trim()) return;
@@ -445,9 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Auto-fire search on the first item
-        if (items[0]) {
-            setTimeout(() => performSearch(items[0].trim()), 400);
+        // Auto-fire search — 1 item ho toh normal single search,
+        // multiple items ho ("Shop this Look") toh SAB EK SAATH search karo
+        const cleanItems = items.map(i => i && i.trim()).filter(Boolean);
+        if (cleanItems.length === 1) {
+            setTimeout(() => performSearch(cleanItems[0]), 400);
+        } else if (cleanItems.length > 1) {
+            setTimeout(() => performMultiSearch(cleanItems), 400);
         }
 
     } catch (err) {

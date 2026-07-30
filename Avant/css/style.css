@@ -661,6 +661,21 @@ h2.section-heading, .tool-text h3 {
 .real-stats-row .stat-rating-num { font-size: 0.8rem; color: #666; }
 .stat-reviews { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: #999; margin-bottom: 14px; }
 
+.extra-chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.extra-chip {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #555;
+    background: #f2f2f2;
+    padding: 5px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.extra-chip--material { background: #eef7ee; color: #2d6a2d; }
+.extra-chip--delivery { background: #eef2fb; color: #2d4a8a; }
+.extra-chip--condition { background: #fbf3e6; color: #8a5a2d; }
+
 .shop-now-btn {
     display: block;
     text-align: center;

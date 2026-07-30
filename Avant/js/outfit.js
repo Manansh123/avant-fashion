@@ -168,7 +168,16 @@ function _loadProxyImage(proxyUrl) {
         wrap.appendChild(spinner);
     }
     spinner.style.display = 'flex';
-    spinner.innerHTML = `<div class="spin-ring-minimal"></div>`;
+    // Same quote + bars loading jo bade mirror-loading state mein use hota hai —
+    // ab dono jagah (initial generate + image load) ek jaisi loading dikhegi
+    spinner.innerHTML = `
+        <div class="mirror-loading-inner">
+            <div class="loading-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <p class="loading-label">LOADING IMAGE...</p>
+        </div>`;
+    showFashionQuote(spinner.querySelector('.mirror-loading-inner'));
 
     imgEl.onload = () => {
         spinner.style.display = 'none';
@@ -382,11 +391,13 @@ async function syncToWardrobeGallery() {
 // ================================================================
 function shopThisLook() {
     if (!currentShopItems.length) { _showToast('Generate a look first.'); return; }
-    localStorage.setItem('avant_shopping_sync', JSON.stringify({
-        items:   currentShopItems,
-        image:   currentImageUrl || '',
-        caption: currentCaption  || ''
-    }));
+
+    // FIX: pehle yahan ek OBJECT { items, image, caption } save hota tha,
+    // lekin shop.js Array.isArray(items) check karta hai — object aane pe
+    // wo silently fail ho jaata tha aur sab items ek saath search nahi hote the.
+    // Ab seedha ARRAY save karo taaki shop.js ke multi-item search ko sahi data mile.
+    localStorage.setItem('avant_shopping_sync', JSON.stringify(currentShopItems));
+
     const btn = document.getElementById('shop-look-btn');
     if (btn) btn.textContent = 'REDIRECTING...';
     setTimeout(() => { window.location.href = 'shop.html'; }, 250);

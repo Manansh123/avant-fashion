@@ -6,7 +6,10 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
+const crypto = require('crypto');
 const User = require('./models/User');
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 app.use(express.json());
@@ -38,9 +41,11 @@ const upload = multer({
 // MONGOOSE MODELS
 // ================================================================
 const userSchema = new mongoose.Schema({
-    name:     { type: String, required: true, unique: true, lowercase: true, trim: true },
-    email:    { type: String, required: true, unique: true },
-    password: { type: String, required: true }
+    name:         { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email:        { type: String, required: true, unique: true },
+    password:     { type: String }, // ab optional — sirf local signup ke liye zaroori
+    googleId:     { type: String, unique: true, sparse: true },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' }
 });
 const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
 
@@ -98,6 +103,9 @@ app.get('/', (req, res) => {
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        if (!name || !email || !password) {
+            return res.status(400).json({ success: false, message: "All fields required!" });
+        }
         const existingUser = await UserModel.findOne({ email });
         if (existingUser) return res.status(400).json({ success: false, message: "Email already exists!" });
         const newUser = new UserModel({ name, email, password });
@@ -119,6 +127,54 @@ app.post('/api/login', async (req, res) => {
         res.status(200).json({ success: true, message: "Login successful! Welcome to AVANT.", name: user.name });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error during login." });
+    }
+});
+
+// Google Sign-In — frontend se ID-token (credential) aata hai, backend verify karta hai
+// Frontend ko Client ID chahiye Google button init karne ke liye — .env se serve karo,
+// hardcode nahi karte kisi HTML/JS file mein
+app.get('/api/config/google-client-id', (req, res) => {
+    res.json({ clientId: process.env.GOOGLE_CLIENT_ID || null });
+});
+
+app.post('/api/auth/google', async (req, res) => {
+    try {
+        const { credential } = req.body;
+        if (!credential) return res.status(400).json({ success: false, message: "No credential provided" });
+
+        // Google ke saath hi verify karo ki token genuine hai aur hamare Client ID ke liye issue hua
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        const email = payload.email;
+        const fullName = payload.name || email.split('@')[0];
+
+        let user = await UserModel.findOne({ email });
+
+        if (!user) {
+            // Naya user — email se ek unique username banao (existing schema mein
+            // 'name' hi username hai, unique hona chahiye)
+            let baseName = fullName.toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 20) || 'user';
+            let candidate = baseName;
+            let suffix = 0;
+            while (await UserModel.findOne({ name: candidate })) {
+                suffix++;
+                candidate = `${baseName}${suffix}`;
+            }
+            // Schema mein password required hai — Google users isse kabhi type nahi karenge,
+            // isliye random secure string daal do (kabhi use nahi hoga login ke liye)
+            const randomPassword = crypto.randomBytes(24).toString('hex');
+            user = new UserModel({ name: candidate, email, password: randomPassword });
+            await user.save();
+            console.log('✅ Naya Google user bana:', candidate);
+        }
+
+        res.json({ success: true, message: `Welcome, ${user.name}!`, name: user.name });
+    } catch (err) {
+        console.error('❌ Google auth failed:', err.message);
+        res.status(401).json({ success: false, message: 'Google sign-in failed: ' + err.message });
     }
 });
 
@@ -549,7 +605,7 @@ Output ONLY valid JSON, no prose, no markdown fences:
   "female": { "bottom": "string or null", "footwear": "string", "accessories": "2-3 items, comma separated" },
   "contrastColor": "string or null",
   "caption": "1-2 line stylist caption mentioning both looks",
-  "imagePrompt": "FULL ready-to-use fashion editorial image generation prompt. Two models standing side by side, one male one female, BOTH wearing the exact same ${garmentDesc} — same color words used for both, no variation. Each with their own bottom/footwear/accessories as specified above. Style aesthetic, occasion, weather mood included. End with: clean white studio background, full body shot, sharp clothing detail, no face visible."
+  "imagePrompt": "MAX 550 characters. FULL ready-to-use fashion editorial image generation prompt. Two models standing side by side, one male one female, BOTH wearing the exact same ${garmentDesc} — same color words used for both, no variation. Each with their own bottom/footwear/accessories as specified above. Style aesthetic, occasion, weather mood included. End with: clean white studio background, full body shot, sharp clothing detail, no face visible."
 }`
         : `You are a fashion stylist AI. Given user's clothing pick, design a complete complementary outfit and output ONLY valid JSON, no prose, no markdown fences:
 {
@@ -558,7 +614,7 @@ Output ONLY valid JSON, no prose, no markdown fences:
   "accessories": "2-3 items, comma separated",
   "contrastColor": "string or null",
   "caption": "1-2 line stylist caption for the user",
-  "imagePrompt": "FULL ready-to-use fashion editorial image generation prompt. Must include: garment, fabric, color, paired bottom (if any), footwear, accessories, aesthetic, occasion, weather mood. End with: clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face visible."
+  "imagePrompt": "MAX 550 characters. FULL ready-to-use fashion editorial image generation prompt. Must include: garment, fabric, color, paired bottom (if any), footwear, accessories, aesthetic, occasion, weather mood. End with: clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face visible."
 }
 
 The garment (item, color, fabric) is FIXED regardless of gender — pair normally for a ${genderNorm} presentation.
@@ -610,7 +666,9 @@ CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE,
                     shoppingItems: [
                         `${color} ${item}`,
                         parsed.male.bottom, parsed.male.footwear,
-                        parsed.female.bottom, parsed.female.footwear
+                        parsed.female.bottom, parsed.female.footwear,
+                        ...(parsed.male.accessories?.split(',').map(a => a.trim()).filter(Boolean) || []),
+                        ...(parsed.female.accessories?.split(',').map(a => a.trim()).filter(Boolean) || [])
                     ].filter(Boolean),
                     pairingDetails: {
                         mainItem: `${color} ${item}`,
@@ -631,7 +689,7 @@ CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE,
                     `${color} ${item}`,
                     parsed.bottom,
                     parsed.footwear,
-                    parsed.accessories?.split(',')[0]?.trim()
+                    ...(parsed.accessories?.split(',').map(a => a.trim()).filter(Boolean) || [])
                 ].filter(Boolean),
                 pairingDetails: {
                     mainItem: `${color} ${item}`,
@@ -664,14 +722,22 @@ app.get('/api/proxy-image', async (req, res) => {
                      : 'person';
 
     const seed = Math.floor(Math.random() * 999999);
-    const finalPrompt = mode === 'product'
+    let finalPrompt = mode === 'product'
         ? `e-commerce product photography, ${prompt}, single garment flat lay or on invisible mannequin, plain white background, studio lighting, sharp detail, no person, no model, no text, no logo, no watermark`
         : genderTerm === 'person' && genderRaw === 'unisex'
         ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
         : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
 
+    // Cloudflare ka flux-1-schnell bahut lambe prompt pe "Invalid input" de deta —
+    // safe length tak cap karo, word-boundary pe cut karo (beech shabd mein nahi)
+    const MAX_PROMPT_LEN = 900;
+    if (finalPrompt.length > MAX_PROMPT_LEN) {
+        finalPrompt = finalPrompt.slice(0, MAX_PROMPT_LEN);
+        finalPrompt = finalPrompt.slice(0, finalPrompt.lastIndexOf(' ')); // beech shabd mein mat kaato
+    }
+
     console.log('☁️ Cloudflare Workers AI call...');
-    console.log('📝 Prompt:', finalPrompt.slice(0, 80) + '...');
+    console.log(`📝 Prompt (${finalPrompt.length} chars):`, finalPrompt);
 
     const CF_TOKEN   = process.env.CF_TOKEN;
     const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
