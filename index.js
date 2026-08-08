@@ -7,8 +7,8 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const { OAuth2Client } = require('google-auth-library');
+const { GoogleGenAI } = require('@google/genai');
 const User = require('./models/User');
-
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'Avant')));
@@ -19,11 +19,31 @@ app.use(express.static(path.join(__dirname, 'Avant')));
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ================================================================
+// GEMINI AI CLIENT (Stylist chatbot)
+// ================================================================
+const genAI = process.env.GEMINI_API_KEY
+    ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+    : null;
+
+const CHAT_SYSTEM_PROMPT = `You are an expert AVANT fashion stylist. Only discuss fashion, style, outfits, trends, colors, and personal styling — politely decline anything unrelated.
+
+REPLY LENGTH: Keep every reply SHORT — 2 to 3 sentences maximum, unless the user explicitly asks for a detailed breakdown, a list, or multiple options. Do not pad with extra flair or repeat the same idea twice.
+
+FORMAT: Plain conversational sentences by default. Only use bullet points if the user's question genuinely calls for a list (e.g. "give me 3 outfit ideas").
+
+COLOR QUESTIONS: When asked about a color (e.g. "color of the day"), name the color, then in ONE short sentence say how to actually wear it day-to-day (e.g. what to pair it with, or where to use it — accessory vs statement piece).
+
+TREND QUESTIONS: When asked about trends, name 1-2 specific trends in a short sentence — don't list five things.
+
+TONE: Witty, honest, direct. Reference 2026 fashion when relevant. Never trail off mid-sentence — always finish your thought.`;
+
+
+// ================================================================
 // CLOUDINARY CONFIG
 // ================================================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
@@ -44,19 +64,19 @@ const upload = multer({
 // MONGOOSE MODELS (Trend / Wardrobe — User model comes from ./models/User)
 // ================================================================
 const trendSchema = new mongoose.Schema({
-    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    name:         { type: String, required: true },
-    imageUrl:     { type: String, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true },
+    imageUrl: { type: String, required: true },
     cloudinaryId: { type: String },
-    createdAt:    { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now }
 });
 const Trend = mongoose.models.Trend || mongoose.model('Trend', trendSchema);
 
 const wardrobeSchema = new mongoose.Schema({
-    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    imageUrl:     { type: String, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    imageUrl: { type: String, required: true },
     cloudinaryId: { type: String },
-    createdAt:    { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now }
 });
 const WardrobeItem = mongoose.models.WardrobeItem || mongoose.model('WardrobeItem', wardrobeSchema);
 
@@ -151,7 +171,7 @@ app.post('/api/auth/google', async (req, res) => {
         });
         const payload = ticket.getPayload();
 
-        const email    = payload.email;
+        const email = payload.email;
         const googleId = payload.sub;
 
         if (!email) {
@@ -223,9 +243,9 @@ app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
             const user = await User.findOne({ name: userName.toLowerCase() });
             if (user) {
                 const trend = new Trend({
-                    userId:       user._id,
-                    name:         trendName,
-                    imageUrl:     cloudResult.secure_url,
+                    userId: user._id,
+                    name: trendName,
+                    imageUrl: cloudResult.secure_url,
                     cloudinaryId: cloudResult.public_id
                 });
                 await trend.save();
@@ -235,10 +255,10 @@ app.post('/api/upload-trend', upload.single('image'), async (req, res) => {
         }
 
         res.json({
-            success:    true,
-            imageUrl:   cloudResult.secure_url,
+            success: true,
+            imageUrl: cloudResult.secure_url,
             savedToDb,
-            message:    savedToDb ? "Trend saved permanently!" : "Trend uploaded (guest session only)"
+            message: savedToDb ? "Trend saved permanently!" : "Trend uploaded (guest session only)"
         });
 
     } catch (error) {
@@ -305,8 +325,8 @@ app.post('/api/upload-wardrobe', upload.single('image'), async (req, res) => {
             const user = await User.findOne({ name: userName.toLowerCase() });
             if (user) {
                 const item = new WardrobeItem({
-                    userId:       user._id,
-                    imageUrl:     cloudResult.secure_url,
+                    userId: user._id,
+                    imageUrl: cloudResult.secure_url,
                     cloudinaryId: cloudResult.public_id
                 });
                 await item.save();
@@ -317,7 +337,7 @@ app.post('/api/upload-wardrobe', upload.single('image'), async (req, res) => {
         }
 
         res.json({
-            success:  true,
+            success: true,
             imageUrl: cloudResult.secure_url,
             itemId,
             savedToDb,
@@ -384,9 +404,9 @@ function hardcodedFallback(req, res) {
     try {
         const { item, color, fabric, aesthetic, occasion, weather, footwear, gender, additionalDetails } = req.body;
 
-        const neutralBottom   = 'Straight Fit Pants';
+        const neutralBottom = 'Straight Fit Pants';
         const neutralFootwear = footwear || 'White Sneakers';
-        const neutralAcc      = 'Minimal watch, Simple chain';
+        const neutralAcc = 'Minimal watch, Simple chain';
 
         const outfitDescription = `${color} ${fabric || ''} ${item} paired with ${neutralBottom}`.trim();
         const imagePrompt = `High fashion editorial lookbook photography. Complete outfit: ${outfitDescription}. Footwear: ${neutralFootwear}. Accessories: ${neutralAcc}. Style aesthetic: ${aesthetic || 'modern minimal'}. Occasion: ${occasion || 'street style'}. Weather: ${weather || 'clear'}. Clean white studio background, full body shot, sharp clothing detail, vertical 3:4 portrait, no face.`;
@@ -443,9 +463,9 @@ app.get('/api/shop-compare', async (req, res) => {
 
     const siteKeywords = {
         'nykaafashion.com': ['nykaa'],
-        'tatacliq.com':     ['tatacliq', 'tata cliq'],
-        'snapdeal.com':     ['snapdeal'],
-        'meesho.com':       ['meesho']
+        'tatacliq.com': ['tatacliq', 'tata cliq'],
+        'snapdeal.com': ['snapdeal'],
+        'meesho.com': ['meesho']
     };
     function matchSite(results, site) {
         const keywords = siteKeywords[site] || [site.split('.')[0]];
@@ -541,7 +561,7 @@ app.get('/api/shop-compare', async (req, res) => {
 
         const uniqueSources = [...new Set(firstPassResults.map(r => r.source).filter(Boolean))];
         console.log(`🔍 SerpApi ne ye sources diye (query: "${query}"):`, uniqueSources.join(', ') || 'none');
-        console.log(`✅ SerpApi shop-compare: ${results.filter(m => m.available).length}/${targetSites.length} platforms matched, ${results.filter(m => m.rating).length} have rating, ${results.reduce((a,r)=>a+(r.snippets?.length||0),0)} review snippets total`);
+        console.log(`✅ SerpApi shop-compare: ${results.filter(m => m.available).length}/${targetSites.length} platforms matched, ${results.filter(m => m.rating).length} have rating, ${results.reduce((a, r) => a + (r.snippets?.length || 0), 0)} review snippets total`);
         return res.json({ success: true, query, results });
     } catch (err) {
         console.error('❌ shop-compare failed:', err.message);
@@ -723,21 +743,21 @@ CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE,
 
 // ── ROUTE 2: IMAGE PROXY — always pipes through server, never redirects ──
 app.get('/api/proxy-image', async (req, res) => {
-    const prompt    = (req.query.prompt || 'fashion lookbook editorial').trim();
-    const width     = parseInt(req.query.width)  || 768;
-    const height    = parseInt(req.query.height) || 1024;
+    const prompt = (req.query.prompt || 'fashion lookbook editorial').trim();
+    const width = parseInt(req.query.width) || 768;
+    const height = parseInt(req.query.height) || 1024;
     const genderRaw = (req.query.gender || '').toLowerCase().trim();
-    const mode      = (req.query.mode || '').toLowerCase().trim();
+    const mode = (req.query.mode || '').toLowerCase().trim();
     const genderTerm = genderRaw === 'men' || genderRaw === 'male' ? 'male'
-                     : genderRaw === 'women' || genderRaw === 'female' ? 'female'
-                     : 'person';
+        : genderRaw === 'women' || genderRaw === 'female' ? 'female'
+            : 'person';
 
     const seed = Math.floor(Math.random() * 999999);
     let finalPrompt = mode === 'product'
         ? `e-commerce product photography, ${prompt}, single garment flat lay or on invisible mannequin, plain white background, studio lighting, sharp detail, no person, no model, no text, no logo, no watermark`
         : genderTerm === 'person' && genderRaw === 'unisex'
-        ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
-        : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
+            ? `fashion editorial photography, ${prompt}, clean white studio background, vertical portrait, no face`
+            : `solo portrait, exactly ONE ${genderTerm} model, no other people in frame, single person only, fashion editorial photography, full body shot, ${prompt}, clean white studio background, vertical portrait, no face`;
 
     // Cloudflare ka flux-1-schnell bahut lambe prompt pe "Invalid input" de deta —
     // safe length tak cap karo, word-boundary pe cut karo (beech shabd mein nahi)
@@ -750,7 +770,7 @@ app.get('/api/proxy-image', async (req, res) => {
     console.log('☁️ Cloudflare Workers AI call...');
     console.log(`📝 Prompt (${finalPrompt.length} chars):`, finalPrompt);
 
-    const CF_TOKEN   = process.env.CF_TOKEN;
+    const CF_TOKEN = process.env.CF_TOKEN;
     const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
 
     if (!CF_TOKEN || !CF_ACCOUNT) {
@@ -761,7 +781,7 @@ app.get('/api/proxy-image', async (req, res) => {
     const cfBody = JSON.stringify({
         prompt: finalPrompt,
         num_steps: 8,
-        width:  width,
+        width: width,
         height: height
     });
 
@@ -781,7 +801,7 @@ app.get('/api/proxy-image', async (req, res) => {
         cfRes.on('data', c => chunks.push(c));
         cfRes.on('end', () => {
             const buf = Buffer.concat(chunks);
-            const ct  = cfRes.headers['content-type'] || '';
+            const ct = cfRes.headers['content-type'] || '';
 
             console.log('📊 CF Status:', cfRes.statusCode);
             console.log('📊 CF Content-Type:', ct);
@@ -887,6 +907,105 @@ function serveHardcodedFallback(res) {
     console.log('⚠️ All fallbacks failed');
     res.status(500).json({ success: false, message: 'Image generation failed. Please retry.' });
 }
+
+
+// ================================================================
+// ROUTE 3: CHAT AI — Stylist chatbot (text + optional image)
+// ================================================================
+function extractGeminiReplyText(response) {
+    if (response.text && response.text.trim().length > 0) {
+        return response.text.trim();
+    }
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    const answerParts = parts.filter(p => !p.thought && p.text);
+    if (answerParts.length > 0) {
+        return answerParts.map(p => p.text).join('').trim();
+    }
+    return null;
+}
+
+
+app.post('/api/chat-ai', upload.single('image'), async (req, res) => {
+    try {
+        const userMessage = (req.body.message || '').trim();
+        const imageFile = req.file;
+
+        if (!userMessage && !imageFile) {
+            return res.status(400).json({ success: false, message: 'Message or image required' });
+        }
+
+        if (!genAI) {
+            console.warn('⚠ GEMINI_API_KEY missing in .env');
+            return res.status(500).json({ success: false, message: 'GEMINI_API_KEY missing in .env' });
+        }
+
+        let imageUrl = null;
+        const parts = [];
+
+        if (imageFile) {
+            parts.push({
+                inlineData: {
+                    mimeType: imageFile.mimetype,
+                    data: imageFile.buffer.toString('base64')
+                }
+            });
+            try {
+                const cloudResult = await uploadToCloudinary(imageFile.buffer, 'chat');
+                imageUrl = cloudResult.secure_url;
+            } catch (cloudErr) {
+                console.warn('⚠ Cloudinary upload failed (chat image):', cloudErr.message);
+            }
+        }
+
+        parts.push({ text: userMessage || 'Please analyze this outfit/photo.' });
+
+        const models = ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+        let replyText = null;
+        let lastErr = null;
+
+        for (const modelName of models) {
+            try {
+                // NOTE: no thinkingConfig at all — the budget/level fields kept
+                // conflicting across model versions. Removing it entirely avoids
+                // the argument error; maxOutputTokens stays high as the safety net.
+                const response = await genAI.models.generateContent({
+                    model: modelName,
+                    contents: [{ role: 'user', parts }],
+                    config: {
+                        systemInstruction: CHAT_SYSTEM_PROMPT,
+                        maxOutputTokens: 1024,
+                        thinkingConfig: { thinkingLevel: 'LOW' }   // akela field — pehle wala error tha jab budget+level dono saath bheje the
+                    }
+                });
+
+                const finishReason = response.candidates?.[0]?.finishReason;
+                console.log(`🔍 [${modelName}] finishReason: ${finishReason} | usage:`, JSON.stringify(response.usageMetadata));
+
+                replyText = extractGeminiReplyText(response);
+
+                if (replyText && replyText.length > 0) {
+                    console.log(`✅ Gemini (${modelName}) replied — ${replyText.length} chars`);
+                    break;
+                } else {
+                    console.warn(`⚠ ${modelName}: no usable answer text (finishReason: ${finishReason})`);
+                }
+            } catch (err) {
+                console.warn(`⚠ Gemini ${modelName} failed:`, err.message);
+                lastErr = err;
+            }
+        }
+
+        if (!replyText) {
+            throw lastErr || new Error('Gemini returned no usable reply');
+        }
+
+        res.json({ success: true, reply: replyText, imageUrl });
+
+    } catch (err) {
+        console.error('❌ chat-ai error:', err.message);
+        res.status(500).json({ success: false, message: 'Stylist AI is unavailable right now: ' + err.message });
+    }
+});
 
 
 // ================================================================
