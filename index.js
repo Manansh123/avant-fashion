@@ -10,6 +10,7 @@ const { OAuth2Client } = require('google-auth-library');
 const { GoogleGenAI } = require('@google/genai');
 const User = require('./models/User');
 const app = express();
+const sharp = require('sharp');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'Avant')));
 
@@ -778,12 +779,7 @@ app.get('/api/proxy-image', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Cloudflare credentials missing in .env' });
     }
 
-    const cfBody = JSON.stringify({
-        prompt: finalPrompt,
-        num_steps: 8,
-        width: width,
-        height: height
-    });
+    const cfBody = JSON.stringify({ prompt: finalPrompt });
 
     const options = {
         hostname: 'api.cloudflare.com',
@@ -796,111 +792,16 @@ app.get('/api/proxy-image', async (req, res) => {
         }
     };
 
-    const cfReq = https.request(options, (cfRes) => {
-        const chunks = [];
-        cfRes.on('data', c => chunks.push(c));
-        cfRes.on('end', () => {
-            const buf = Buffer.concat(chunks);
-            const ct = cfRes.headers['content-type'] || '';
-
-            console.log('📊 CF Status:', cfRes.statusCode);
-            console.log('📊 CF Content-Type:', ct);
-
-            if (cfRes.statusCode !== 200) {
-                console.error('❌ CF Error:', buf.toString().slice(0, 200));
-                return servePicsum(res, seed, width, height);
-            }
-
-            // Case 1: Direct image response
-            if (ct.startsWith('image/')) {
-                console.log('✅ Cloudflare direct image! Bytes:', buf.length);
-                res.setHeader('Content-Type', ct);
-                res.setHeader('Cache-Control', 'no-store');
-                return res.send(buf);
-            }
-
-            // Case 2: JSON with base64
-            try {
-                const json = JSON.parse(buf.toString());
-                if (json.result?.image) {
-                    const imgBuf = Buffer.from(json.result.image, 'base64');
-                    console.log('✅ Cloudflare base64 image! Bytes:', imgBuf.length);
-                    res.setHeader('Content-Type', 'image/png');
-                    res.setHeader('Cache-Control', 'no-store');
-                    return res.send(imgBuf);
-                }
-                console.error('❌ CF JSON no image field:', JSON.stringify(json).slice(0, 200));
-            } catch (e) {
-                console.error('❌ CF parse error:', e.message);
-            }
-
-            return servePicsum(res, seed, width, height);
-        });
-    });
-
-    cfReq.on('error', (e) => {
-        console.error('❌ CF request error:', e.message);
-        servePicsum(res, seed, width, height);
-    });
-
-    cfReq.setTimeout(60000, () => {
-        cfReq.destroy();
-        console.error('❌ CF timeout');
-        servePicsum(res, seed, width, height);
-    });
-
-    cfReq.write(cfBody);
-    cfReq.end();
-});
-
-
-// Picsum helper — sirf last resort
-function servePicsum(res, seed, width, height) {
-    console.log('📸 Unsplash fashion fallback...');
-
-    const fashionPhotos = [
-        'photo-1539109136881-3be0616acf4b', // fashion model street
-        'photo-1515886657613-9f3515b0c78f', // fashion model studio
-        'photo-1469334031218-e382a71b716b', // fashion editorial
-        'photo-1558618666-fcd25c85cd64', // outfit flat lay
-        'photo-1496747611176-843222e1e57c', // model walking
-        'photo-1509631179647-0177331693ae', // fashion shoot
-        'photo-1581044777550-4cfa60707c03', // editorial fashion
-        'photo-1475180098004-ca77a66827be', // model outfit
-        'photo-1434389677669-e08b4cac3105', // fashion street
-        'photo-1485968579580-b6d095142e6e', // model lookbook
-    ];
-
-    const photoId = fashionPhotos[seed % fashionPhotos.length];
-    const url = `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${width}&h=${height}&q=80`;
-
-    console.log('📸 Using Unsplash fashion photo:', photoId);
-
-    https.get(url, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (pRes) => {
-        // Unsplash redirects karta hai - follow karna padega
-        if (pRes.statusCode === 301 || pRes.statusCode === 302) {
-            const redirectUrl = pRes.headers.location;
-            https.get(redirectUrl, { headers: { 'User-Agent': 'AvantApp/1.0' } }, (rRes) => {
-                const chunks = [];
-                rRes.on('data', c => chunks.push(c));
-                rRes.on('end', () => {
-                    res.setHeader('Content-Type', 'image/jpeg');
-                    res.setHeader('Cache-Control', 'no-store');
-                    res.send(Buffer.concat(chunks));
-                });
-            }).on('error', () => serveHardcodedFallback(res));
-            return;
+    callCloudflareImage(cfBody, options, 1, 3, (err, result) => {
+        if (err) {
+            console.error('❌ All Cloudflare attempts failed:', err.message);
+            return res.status(500).json({ success: false, message: 'Image generation failed. Please retry.' });
         }
-
-        const chunks = [];
-        pRes.on('data', c => chunks.push(c));
-        pRes.on('end', () => {
-            res.setHeader('Content-Type', 'image/jpeg');
-            res.setHeader('Cache-Control', 'no-store');
-            res.send(Buffer.concat(chunks));
-        });
-    }).on('error', () => serveHardcodedFallback(res));
-}
+        res.setHeader('Content-Type', result.contentType);
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(result.buffer);
+    });
+});
 
 // Last last resort - agar Unsplash bhi fail ho
 function serveHardcodedFallback(res) {
@@ -908,6 +809,65 @@ function serveHardcodedFallback(res) {
     res.status(500).json({ success: false, message: 'Image generation failed. Please retry.' });
 }
 
+function callCloudflareImage(cfBody, options, attempt, maxAttempts, onDone) {
+    console.log(`☁️ Cloudflare attempt ${attempt}/${maxAttempts}...`);
+
+    const cfReq = https.request(options, (cfRes) => {
+        const chunks = [];
+        cfRes.on('data', c => chunks.push(c));
+        cfRes.on('end', () => {
+            const buf = Buffer.concat(chunks);
+            const ct  = cfRes.headers['content-type'] || '';
+
+            console.log(`📊 CF Status: ${cfRes.statusCode} | Content-Type: ${ct}`);
+
+            if (cfRes.statusCode === 200 && ct.startsWith('image/')) {
+                console.log('✅ Cloudflare direct image! Bytes:', buf.length);
+                return onDone(null, { buffer: buf, contentType: ct });
+            }
+
+            if (cfRes.statusCode === 200) {
+                try {
+                    const json = JSON.parse(buf.toString());
+                    if (json.result?.image) {
+                        const imgBuf = Buffer.from(json.result.image, 'base64');
+                        console.log('✅ Cloudflare base64 image! Bytes:', imgBuf.length);
+                        return onDone(null, { buffer: imgBuf, contentType: 'image/png' });
+                    }
+                } catch (e) { /* fall through to retry */ }
+            }
+
+            console.error('❌ CF Error:', buf.toString().slice(0, 300));
+
+            if (attempt < maxAttempts) {
+                return callCloudflareImage(cfBody, options, attempt + 1, maxAttempts, onDone);
+            }
+            onDone(new Error('Image generation failed after multiple attempts'));
+        });
+    });
+
+    cfReq.on('error', (e) => {
+        console.error('❌ CF request error:', e.message);
+        if (attempt < maxAttempts) {
+            callCloudflareImage(cfBody, options, attempt + 1, maxAttempts, onDone);
+        } else {
+            onDone(e);
+        }
+    });
+
+    cfReq.setTimeout(60000, () => {
+        cfReq.destroy();
+        console.error('❌ CF timeout');
+        if (attempt < maxAttempts) {
+            callCloudflareImage(cfBody, options, attempt + 1, maxAttempts, onDone);
+        } else {
+            onDone(new Error('Image generation timed out after multiple attempts'));
+        }
+    });
+
+    cfReq.write(cfBody);
+    cfReq.end();
+}
 
 // ================================================================
 // ROUTE 3: CHAT AI — Stylist chatbot (text + optional image)
@@ -1007,6 +967,121 @@ app.post('/api/chat-ai', upload.single('image'), async (req, res) => {
     }
 });
 
+
+// ================================================================
+// ROUTE 4: VIRTUAL TRY-ON — via IDM-VTON (free Hugging Face Space)
+// ================================================================
+function fetchImageBuffer(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (r) => {
+            if (r.statusCode >= 400) {
+                return reject(new Error(`Failed to fetch image (status ${r.statusCode})`));
+            }
+            const chunks = [];
+            r.on('data', c => chunks.push(c));
+            r.on('end', () => resolve(Buffer.concat(chunks)));
+        }).on('error', reject);
+    });
+}
+
+async function describeGarment(buffer, mimeType) {
+    if (!genAI) return 'a clothing item';
+    try {
+        const response = await genAI.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: [{
+                role: 'user',
+                parts: [
+                    { inlineData: { mimeType, data: buffer.toString('base64') } },
+                    { text: 'Describe this single clothing item in under 10 words for a virtual try-on system (e.g. "white cotton crew-neck t-shirt"). Output ONLY the description, nothing else.' }
+                ]
+            }]
+        });
+        const text = response.text?.trim();
+        return text && text.length > 0 ? text : 'a clothing item';
+    } catch (err) {
+        console.warn('⚠ Garment description failed, using generic fallback:', err.message);
+        return 'a clothing item';
+    }
+}
+
+app.post(
+    '/api/virtual-tryon',
+    upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'garmentPhoto', maxCount: 1 }]),
+    async (req, res) => {
+        try {
+            const photoFile = req.files?.photo?.[0];
+            const garmentUploadFile = req.files?.garmentPhoto?.[0];
+            const lookImageUrl = (req.body.lookImageUrl || '').trim();
+
+            if (!photoFile || (!garmentUploadFile && !lookImageUrl)) {
+                return res.status(400).json({ success: false, message: 'Your photo and a garment (upload or saved look) are required.' });
+            }
+
+            // Garment bytes: either directly uploaded, or fetched from the
+            // selected wardrobe look's Cloudinary URL.
+            let garmentBuffer, garmentMime;
+            if (garmentUploadFile) {
+                garmentBuffer = garmentUploadFile.buffer;
+                garmentMime = garmentUploadFile.mimetype;
+            } else {
+                garmentBuffer = await fetchImageBuffer(lookImageUrl);
+                garmentMime = lookImageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+            }
+
+            const garmentDes = await describeGarment(garmentBuffer, garmentMime);
+            console.log('🧥 Garment description:', garmentDes);
+
+            const { Client } = await import('@gradio/client');
+
+            console.log('🔌 Connecting to IDM-VTON...');
+            const client = await Client.connect('yisol/IDM-VTON', {
+                token: process.env.HF_TOKEN || undefined
+            });
+
+            // Convert both images to PNG regardless of original format (AVIF, WebP,
+            // HEIC, etc.) — IDM-VTON's Python backend may not decode newer formats.
+            const personPng = await sharp(photoFile.buffer).png().toBuffer();
+            const garmentPng = await sharp(garmentBuffer).png().toBuffer();
+
+            const personBlob = new Blob([personPng], { type: 'image/png' });
+            const garmentBlob = new Blob([garmentPng], { type: 'image/png' });
+
+            console.log('🎨 Running try-on...');
+            const result = await client.predict('/tryon', {
+                dict: { background: personBlob, layers: [], composite: null },
+                garm_img: garmentBlob,
+                garment_des: garmentDes,
+                is_checked: true,
+                is_checked_crop: false,
+                denoise_steps: 20,
+                seed: Math.floor(Math.random() * 999999)
+            });
+
+            console.log('🔍 IDM-VTON raw result:', JSON.stringify(result.data).slice(0, 300));
+
+            const outputImage = result.data?.[0];
+            let resultBuffer;
+
+            if (outputImage?.url) {
+                resultBuffer = await fetchImageBuffer(outputImage.url);
+            } else if (typeof outputImage === 'string' && outputImage.startsWith('http')) {
+                resultBuffer = await fetchImageBuffer(outputImage);
+            } else {
+                console.error('❌ Unexpected IDM-VTON response shape:', outputImage);
+                throw new Error('Could not read the result image from IDM-VTON.');
+            }
+
+            const cloudResult = await uploadToCloudinary(resultBuffer, 'tryon');
+            res.json({ success: true, imageUrl: cloudResult.secure_url });
+
+        } catch (err) {
+            console.error('❌ virtual-tryon error:', err.message);
+            console.error('❌ Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+            res.status(500).json({ success: false, message: 'Virtual try-on failed: ' + err.message });
+        }
+    }
+);
 
 // ================================================================
 // SERVER INITIALIZATION

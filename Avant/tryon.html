@@ -11,15 +11,16 @@
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@400;600;700&display=swap"
         rel="stylesheet">
 </head>
-<script src="js/chatbot.js"></script>
+
 <body class="tryon-page-body">
     <div id="nav-placeholder"></div>
 
     <main class="tryon-page">
-        <header class="tryon-hero">
-            <p class="editorial-label-ward">06 / VIRTUAL FITTING ROOM</p>
-            <h1 class="tryon-title">TRY IT <span>ON</span></h1>
-            <p class="tryon-sub">Upload your photo, place a saved look on top, and see how it fits before you buy.</p>
+        <header class="hero-overlay tryon-hero">
+            <p class="editorial-label-ward">05 / VIRTUAL FITTING ROOM</p>
+            <h1 class="shop-title">TRY&nbsp;IT&nbsp;<span>ON</span></h1>
+            <p class="shop-quote">Upload your photo, pick a saved look or your own garment photo, and let AI show you
+                exactly how it fits.</p>
         </header>
 
         <div class="tryon-grid">
@@ -32,11 +33,11 @@
                     <div class="tryon-upload-zone" id="upload-zone">
                         <input type="file" id="user-photo-input" accept="image/*" hidden>
                         <div class="tryon-upload-inner" id="upload-inner">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000"
-                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="17 8 12 3 7 8"/>
-                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
                             </svg>
                             <p>Upload a full-body photo<br><span>front-facing, plain background works best</span></p>
                         </div>
@@ -44,42 +45,55 @@
                 </section>
 
                 <section class="tryon-panel">
-                    <p class="tryon-panel-label">02 — SELECT A LOOK</p>
+                    <p class="tryon-panel-label">02 — YOUR OUTFIT</p>
+
+                    <div class="tryon-upload-zone" id="garment-upload-zone">
+                        <input type="file" id="garment-photo-input" accept="image/*" hidden>
+                        <div class="tryon-upload-inner" id="garment-upload-inner">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            <p>Upload a garment photo<br><span>clean product shot works best</span></p>
+                        </div>
+                    </div>
+
+                    <div class="tryon-save-look-wrap" id="save-look-wrap" style="display:none;">
+                        <label class="tryon-save-look-label">
+                            <input type="checkbox" id="save-look-checkbox">
+                            Save this look to my Wardrobe
+                        </label>
+                    </div>
+
+                    <p class="tryon-or-divider">OR SELECT A SAVED LOOK</p>
+
                     <div class="tryon-looks-grid" id="looks-grid">
                         <p class="tryon-empty-msg">Loading your saved looks…</p>
                     </div>
                 </section>
 
+                <button type="button" class="tryon-generate-btn" id="generate-btn" disabled>
+                    Try It On
+                </button>
             </div>
 
-            <!-- RIGHT: Canvas stage -->
+            <!-- RIGHT: Result stage -->
             <div class="tryon-stage-wrap">
-                <p class="tryon-panel-label">03 — FIT IT</p>
+                <p class="tryon-panel-label">03 — YOUR FIT</p>
                 <div class="tryon-stage" id="tryon-stage">
-                    <canvas id="tryon-canvas"></canvas>
                     <p class="tryon-stage-placeholder" id="stage-placeholder">
                         Upload your photo and pick a look to begin
                     </p>
                 </div>
 
-                <div class="tryon-adjust-controls" id="adjust-controls" style="display:none;">
-                    <div class="tryon-slider-row">
-                        <label>Size</label>
-                        <input type="range" id="scale-slider" min="20" max="200" value="90">
-                    </div>
-                    <div class="tryon-slider-row">
-                        <label>Opacity</label>
-                        <input type="range" id="opacity-slider" min="20" max="100" value="85">
-                    </div>
-                    <p class="tryon-hint">Drag the outfit to line it up. Scroll or pinch also resizes it.</p>
-                </div>
-
                 <div class="tryon-actions" id="tryon-actions" style="display:none;">
                     <button type="button" class="action-btn action-btn--save" id="tryon-download-btn">
-                        Download This Try-On
+                        Download This Look
                     </button>
                     <button type="button" class="action-btn action-btn--shop" id="tryon-reset-btn">
-                        Reset
+                        Try Another
                     </button>
                 </div>
             </div>
@@ -89,11 +103,12 @@
 
     <div id="footer-placeholder"></div>
 
+    <script src="js/chatbot.js"></script>
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/tryon.js"></script>
     <script>
-        window.onload = () => loadLayout(initMobileMenu);
+        window.onload = () => loadLayout();
     </script>
 </body>
 

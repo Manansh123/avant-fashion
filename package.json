@@ -12,12 +12,14 @@
   "type": "commonjs",
   "dependencies": {
     "@google/genai": "^2.16.0",
+    "@gradio/client": "^2.4.0",
     "cloudinary": "^1.41.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^10.9.1",
     "mongoose": "^8.23.0",
     "multer": "^2.1.1",
-    "multer-storage-cloudinary": "^4.0.0"
+    "multer-storage-cloudinary": "^4.0.0",
+    "sharp": "^0.35.3"
   }
 }

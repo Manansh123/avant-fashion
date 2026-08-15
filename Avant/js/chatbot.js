@@ -25,7 +25,7 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 999999;
+            z-index: 5000;
             font-family: 'Montserrat', sans-serif;
         }
 

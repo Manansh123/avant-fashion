@@ -337,11 +337,11 @@ async function getAIAdvice(style) {
         const tips = await callGroq(style);
         responseBox.innerHTML = renderTips(style, tips);
     } catch (err) {
-        console.error('🚨 Groq failed:', err.message);
+        console.error('🚨 Trend tips failed:', err.message);
         responseBox.innerHTML = `
             <div style="padding:30px 40px;font-family:'Montserrat',sans-serif;">
                 <p style="font-size:0.7rem;letter-spacing:2px;color:#c00;text-transform:uppercase;margin-bottom:12px;">⚠ AI ERROR</p>
-                <p style="font-size:0.82rem;color:#333;line-height:1.8;">${err.message}</p>
+                <p style="font-size:0.82rem;color:#333;line-height:1.8;">Our style desk is between appointments right now — give it another moment and try again.</p>
             </div>`;
     }
 }

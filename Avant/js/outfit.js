@@ -75,7 +75,7 @@ async function generateOutfit() {
     }
 
     const inputChips = [item, color, fabric, aesthetic, occasion, weather, footwear].filter(v => v);
-
+    document.querySelector('.visual-output')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const synthBtn = document.getElementById('synthesize-btn');
     const btnText  = synthBtn?.querySelector('.btn-text');
     if (synthBtn) synthBtn.disabled = true;
@@ -86,7 +86,6 @@ async function generateOutfit() {
 
     resetProgress();
     setProgress(12);
-    showMirrorState('loading');
 
     // gender read early — sent to backend now, not just used for the image proxy
     const targetGender = (document.getElementById('dl-gender')?.value || 'unisex').trim();
@@ -142,7 +141,7 @@ async function generateOutfit() {
         console.error('❌', err.message);
         setProgress(0);
         showMirrorState('default');
-        _showToast('Failed: ' + err.message);
+        _showToast('Couldn\'t synthesize that look — please try again.');
     } finally {
         if (synthBtn) synthBtn.disabled = false;
         if (btnText) btnText.innerHTML = '✦ &nbsp; SYNTHESIZE LOOK &nbsp; ✦';
@@ -320,6 +319,35 @@ function _showToast(msg) {
 }
 
 // ================================================================
+// GO TO VIRTUAL TRY-ON — sends the generated look straight into the
+// Try-On page's garment upload slot (no need to save-to-wardrobe first)
+// ================================================================
+async function goToVirtualTryOn() {
+    const blob = window._avantCapturedBlob;
+    if (!blob) {
+        _showToast('Generate a look first, then wait for the image to fully load.');
+        return;
+    }
+ 
+    try {
+        // Blob can't be stored in localStorage directly — convert to a
+        // base64 data URL so it survives the page navigation.
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+ 
+        localStorage.setItem('avant_tryon_garment_bridge', JSON.stringify({ dataUrl }));
+        window.location.href = 'tryon.html';
+    } catch (err) {
+        _showToast('Could not send this look to Try-On — please try again.');
+        console.error('goToVirtualTryOn error:', err);
+    }
+}
+
+// ================================================================
 // SAVE TO CLOSET
 // ================================================================
 async function saveToCloset() {
@@ -337,7 +365,7 @@ async function saveToCloset() {
         if (!data.success) throw new Error(data.message);
         _showToast(data.savedToDb ? '✓ Saved to Closet!' : '✓ Saved! Login to keep permanently.');
     } catch (err) {
-        _showToast('Save failed: ' + err.message);
+        _showToast('Couldn\'t save to your closet — please try again.');
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = '↓   Save to Try-On Closet'; }
     }
@@ -381,7 +409,7 @@ async function syncToWardrobeGallery() {
         _showToast('✓ Added to Wardrobe!');
         setTimeout(() => { window.location.href = 'wardrobe.html'; }, 700);
     } catch (err) {
-        _showToast('Sync failed: ' + err.message);
+        _showToast('Couldn\'t sync to your wardrobe — please try again.');
         if (btn) { btn.disabled = false; btn.textContent = '＋  Add to Wardrobe Page'; }
     }
 }
