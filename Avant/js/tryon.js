@@ -310,14 +310,30 @@ generateBtn.addEventListener('click', async () => {
     generateBtn.textContent = 'Fitting...';
     actionsWrap.style.display = 'none';
 
-    stage.innerHTML = `
-    <div class="tryon-loading-inner">
-        <div class="loading-bars">
-            <span></span><span></span><span></span><span></span><span></span>
-        </div>
-    </div>`;
+    const loadingQuotes = [
+        "✦ Draping the fabric just right...",
+        "✦ Consulting the style archives...",
+        "✦ Matching light and shadow to the fit...",
+        "✦ Tailoring every seam to your shape...",
+        "✦ Almost runway-ready...",
+        "✦ Fine-tuning the silhouette..."
+    ];
+    let quoteIndex = 0;
 
-showFashionQuote(stage.querySelector('.tryon-loading-inner'));
+    stage.innerHTML = `
+        <div class="tryon-loading-inner">
+            <div class="loading-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <p class="loading-label" id="tryon-loading-quote">${loadingQuotes[0]}</p>
+        </div>`;
+
+    const quoteInterval = setInterval(() => {
+        quoteIndex = (quoteIndex + 1) % loadingQuotes.length;
+        const el = document.getElementById('tryon-loading-quote');
+        if (el) el.textContent = loadingQuotes[quoteIndex];
+        else clearInterval(quoteInterval);
+    }, 3500);
 
     try {
         const fd = new FormData();
@@ -328,7 +344,10 @@ showFashionQuote(stage.querySelector('.tryon-loading-inner'));
             fd.append('lookImageUrl', selectedLookUrl);
         }
 
-        const res = await fetch('/api/virtual-tryon', { method: 'POST', body: fd });
+        const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 100000); // 100s — slightly more than backend's 90s
+const res = await fetch('/api/virtual-tryon', { method: 'POST', body: fd, signal: controller.signal });
+clearTimeout(timeoutId);
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
             throw new Error(`Server error (status ${res.status})`);

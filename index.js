@@ -1048,15 +1048,21 @@ app.post(
             const garmentBlob = new Blob([garmentPng], { type: 'image/png' });
 
             console.log('🎨 Running try-on...');
-            const result = await client.predict('/tryon', {
-                dict: { background: personBlob, layers: [], composite: null },
-                garm_img: garmentBlob,
-                garment_des: garmentDes,
-                is_checked: true,
-                is_checked_crop: false,
-                denoise_steps: 20,
-                seed: Math.floor(Math.random() * 999999)
-            });
+            const tryonPromise = client.predict('/tryon', {
+    dict: { background: personBlob, layers: [], composite: null },
+    garm_img: garmentBlob,
+    garment_des: garmentDes,
+    is_checked: true,
+    is_checked_crop: false,
+    denoise_steps: 20,
+    seed: Math.floor(Math.random() * 999999)
+});
+
+const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('IDM-VTON took too long to respond (over 90s) — the free queue may be stuck or overloaded.')), 90000)
+);
+
+const result = await Promise.race([tryonPromise, timeoutPromise]);
 
             console.log('🔍 IDM-VTON raw result:', JSON.stringify(result.data).slice(0, 300));
 
