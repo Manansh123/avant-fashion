@@ -311,12 +311,12 @@ generateBtn.addEventListener('click', async () => {
     actionsWrap.style.display = 'none';
 
     const loadingQuotes = [
-        "✦ Draping the fabric just right...",
-        "✦ Consulting the style archives...",
-        "✦ Matching light and shadow to the fit...",
-        "✦ Tailoring every seam to your shape...",
-        "✦ Almost runway-ready...",
-        "✦ Fine-tuning the silhouette..."
+        "Draping the fabric just right...",
+        "Consulting the style archives...",
+        "Matching light and shadow to the fit...",
+        "Tailoring every seam to your shape...",
+        "Almost runway-ready...",
+        "Fine-tuning the silhouette..."
     ];
     let quoteIndex = 0;
 
