@@ -17,6 +17,7 @@ async function loadComponent(elementId, filePath) {
         if (elementId === 'nav-placeholder') {
             initLoginModal();
             initMobileMenu(); 
+            if (typeof updateNavbarAuth === 'function') updateNavbarAuth();
         }
     } catch (error) {
         console.error(error);

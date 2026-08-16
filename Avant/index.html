@@ -30,44 +30,6 @@
         }
     </style>
 </head>
-<script>
-    // 1. Navbar ko fetch karke placeholder mein daalo
-    fetch('navbar.html')
-        .then(response => response.text())
-        .then(data => {
-            const navPlaceholder = document.getElementById('nav-placeholder');
-            if (navPlaceholder) {
-                navPlaceholder.innerHTML = data;
-
-                // --- NAVBAR LOAD HONE KE BAAD UI UPDATE KARO ---
-                updateNavbarUI();
-            }
-        })
-        .catch(err => console.error("Navbar load nahi hua:", err));
-
-    // 2. Login status ke hisaab se button change karne ka function
-    function updateNavbarUI() {
-        const userName = localStorage.getItem('avantUserName');
-        const authBtn = document.getElementById('authBtn');
-
-        if (userName && authBtn) {
-            // Username format: @manansh (spaces hatakar lowercase)
-            const handle = userName.replace(/\s+/g, '').toLowerCase();
-            authBtn.innerText = `@${handle}`;
-            authBtn.href = "#"; // Login page par jaane se roko
-            authBtn.style.cursor = "pointer";
-
-            // Logout Logic
-            authBtn.onclick = function (e) {
-                e.preventDefault();
-                if (confirm("Do you want to Logout from Avant?")) {
-                    localStorage.removeItem('avantUserName');
-                    window.location.reload();
-                }
-            };
-        }
-    }
-</script>
 <script src="js/chatbot.js"></script>
 <body class="home-page">
 
@@ -199,10 +161,6 @@
     </section>
 
     <div id="footer-placeholder"></div>
-
-
-    <div id="footer-placeholder"></div>
-
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
 
