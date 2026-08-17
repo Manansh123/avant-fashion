@@ -2205,3 +2205,15 @@ h2.section-heading, .tool-text h3 {
     display: block;
     margin-left: 26px;
 }
+
+@media (max-width: 768px) {
+    /* Menu open hone par hamburger completely hide */
+    .nav-links.nav-active ~ .burger-menu {
+        display: none !important;
+    }
+
+    /* Close X visible */
+    .nav-links.nav-active .mobile-menu-close-btn {
+        display: block !important;
+    }
+}
