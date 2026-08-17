@@ -32,7 +32,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const heroSection = document.querySelector('.hero');
     const statNumbers = document.querySelectorAll('.stat-number');
     const trendBtns = document.querySelectorAll('.trend-btn');
-
+    // Mobile-only: reveal color as each tool-row scrolls into view
+    const toolRows = document.querySelectorAll('.tool-row');
+    if (toolRows.length && window.innerWidth <= 768) {
+        const rowObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, { threshold: 0.4 });
+        toolRows.forEach(row => rowObserver.observe(row));
+    }
     // --- 2. MOBILE SPACE FIX (CRITICAL) ---
     // Phone par image load hote hi container ki extra height remove karein
     if (banner) {

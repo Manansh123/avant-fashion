@@ -92,21 +92,20 @@ body {
 /* Default logo = white (works on dark hero) */
 .logo-image, .logo-name-image {
     filter: invert(0) brightness(1)
-        drop-shadow(0.4px 0 0 #fff)
-        drop-shadow(-0.4px 0 0 #fff)
-        drop-shadow(0 0.4px 0 #fff)
-        drop-shadow(0 -0.4px 0 #fff);
+        drop-shadow(0.0px 0 0 #fff)
+        drop-shadow(0.0px 0 0 #fff)
+        drop-shadow(0 0.0px 0 #fff)
+        drop-shadow(0 0.0px 0 #fff);
     transition: filter 0.4s ease;
 }
 
 /* ── Page-specific logo colours ── */
 .trends-page .navbar:not(.scrolled) .logo-image,
 .trends-page .navbar:not(.scrolled) .logo-name-image,
-.build-page  .navbar:not(.scrolled) .logo-image,
-.build-page  .navbar:not(.scrolled) .logo-name-image  { filter: invert(1) brightness(0); }
-
-.home-page .navbar .logo-image,
-.home-page .navbar .logo-name-image { filter: invert(0) brightness(1); }
+.build-page .navbar:not(.scrolled) .logo-image,
+.build-page .navbar:not(.scrolled) .logo-name-image {
+    filter: invert(1) brightness(0) !important;
+}
 
 /* ── Nav links ── */
 .nav-right-group { display: flex; align-items: center; gap: 30px; }
@@ -376,6 +375,15 @@ h2.section-heading, .tool-text h3 {
 }
 .tool-row:hover .tool-image img { transform: scale(1.05); filter: grayscale(0%); }
 
+@media (max-width: 768px) {
+    .tool-row .tool-image img {
+        filter: grayscale(100%);
+        transition: filter 0.8s ease;
+    }
+    .tool-row.in-view .tool-image img {
+        filter: grayscale(0%);
+    }
+}
 
 /* ──────────────────────────────────────────────────────────────
    FOOTER
@@ -458,11 +466,9 @@ h2.section-heading, .tool-text h3 {
 /* ──────────────────────────────────────────────────────────────
    TRENDS PAGE — MATRIX
    ────────────────────────────────────────────────────────────── */
-.trends-page .navbar:not(.scrolled) .logo-image,
-.trends-page .navbar:not(.scrolled) .logo-name-image { filter: invert(1) brightness(0); }
-.trends-page .navbar:not(.scrolled) .nav-links a { color: #000; }
-.trends-page .navbar.scrolled .logo-image,
-.trends-page .navbar.scrolled .logo-name-image { filter: invert(0) brightness(1); }
+.trends-page .navbar:not(.scrolled) .nav-links a {
+    color: #000;
+}
 
 .trends-main { padding: 50px 75px 0; background: #fff; }
 .editorial-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 15px; display: block; }
@@ -850,7 +856,9 @@ h2.section-heading, .tool-text h3 {
    RESPONSIVE — MOBILE (≤768px)
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-
+    .delete-btn {
+        opacity: 1 !important;
+    }
     /* ── Navbar ── */
     .navbar { padding: 12px 18px; }
     .nav-right-group { gap: 12px; }
@@ -882,6 +890,11 @@ h2.section-heading, .tool-text h3 {
         text-transform: uppercase;
         font-family: 'Cormorant Garamond', serif;
         font-weight: 700;
+    }
+
+    body.build-page .nav-links.nav-active a,
+    body.trends-page .nav-links.nav-active a {
+        color: #fff !important;
     }
     /* Hide login text inside mobile menu, keep it in bar */
     .navbar .login-btn { font-size: 0.7rem; padding: 7px 14px; }
@@ -1036,7 +1049,7 @@ h2.section-heading, .tool-text h3 {
     filter: invert(1) brightness(0) !important;
 }
 
-.build-page .navbar:not(.scrolled) .nav-links a {
+.build-page .navbar:not(.scrolled) .nav-links:not(.nav-active) a {
     color: #000 !important;
 }
 
@@ -1755,7 +1768,28 @@ h2.section-heading, .tool-text h3 {
 .tryon-page-body .navbar:not(.scrolled) .nav-links a { color: #fff !important; }
 .tryon-page-body .navbar:not(.scrolled) .logo-image,
 .tryon-page-body .navbar:not(.scrolled) .logo-name-image { filter: invert(0) brightness(1) !important; }
+/* ── TRY-ON NAVBAR — WHITE CONTROLS ── */
 
+.tryon-page-body .navbar:not(.scrolled) .login-btn {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #fff !important;
+}
+
+/* Hamburger / menu icon */
+.tryon-page-body .navbar:not(.scrolled) .burger-menu span {
+    background: #fff !important;
+}
+
+/* Mobile menu links */
+.tryon-page-body .nav-links.nav-active a {
+    color: #fff !important;
+}
+
+/* Mobile menu close X */
+.tryon-page-body .mobile-menu-close-btn {
+    color: #fff !important;
+}
 /* ================================================================
    TRYON HERO — with banner image + overlay
    ================================================================ */
