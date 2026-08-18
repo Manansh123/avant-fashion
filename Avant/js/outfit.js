@@ -83,7 +83,7 @@ async function generateOutfit() {
 
     const actionsWrap = document.getElementById('mirror-actions');
     if (actionsWrap) actionsWrap.style.display = 'none';
-
+    resetActionButtons();
     resetProgress();
     setProgress(12);
 
@@ -380,7 +380,7 @@ async function syncToWardrobeGallery() {
     if (!blob) { _showToast('Generate a look first, then wait for image to fully load.'); return; }
 
     const btn = document.getElementById('shop-btn');
-    if (btn) { btn.disabled = true; btn.textContent = '↑  UPLOADING...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'UPLOADING...'; }
 
     try {
         _showToast('Syncing look to Wardrobe...');
@@ -410,7 +410,7 @@ async function syncToWardrobeGallery() {
         setTimeout(() => { window.location.href = 'wardrobe.html'; }, 700);
     } catch (err) {
         _showToast('Couldn\'t sync to your wardrobe — please try again.');
-        if (btn) { btn.disabled = false; btn.textContent = '＋  Add to Wardrobe Page'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Add to Wardrobe Page'; }
     }
 }
 
@@ -430,6 +430,27 @@ function shopThisLook() {
     if (btn) btn.textContent = 'REDIRECTING...';
     setTimeout(() => { window.location.href = 'shop.html'; }, 250);
 }
+
+// ================================================================
+// RESET ACTION BUTTONS — fixes buttons staying stuck on
+// "UPLOADING.../REDIRECTING..." when the user hits the browser's
+// Back button (bfcache restores the frozen JS state as-is).
+// ================================================================
+function resetActionButtons() {
+    const shopBtn = document.getElementById('shop-btn');
+    if (shopBtn) { shopBtn.disabled = false; shopBtn.textContent = '＋  Add to Wardrobe Page'; }
+
+    const shopLookBtn = document.getElementById('shop-look-btn');
+    if (shopLookBtn) { shopLookBtn.disabled = false; shopLookBtn.textContent = 'Shop this Look'; }
+
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Try This Look On'; }
+}
+
+// Fires when the page is restored from bfcache (Back/Forward button)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) resetActionButtons();
+});
 
 // ================================================================
 // DATALIST REOPEN FIX

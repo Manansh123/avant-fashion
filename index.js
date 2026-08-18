@@ -582,14 +582,21 @@ app.post('/api/trend-style-tips', async (req, res) => {
     }
 
     const prompt = `You are a fashion stylist for AVANT. Give exactly 5 styling tips for the "${style}" aesthetic for 2026. Plain text only. No markdown, no bold, no asterisks. Number each tip: 1. tip text. One tip per line. Output ONLY the 5 numbered tips.`;
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+    const models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
 
     for (const model of models) {
         try {
             const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY_TRENDS}` },
-                body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 })
+                body: JSON.stringify({
+                    model,
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 500,
+                    temperature: 0.7,
+                    reasoning_effort: 'low',
+                    reasoning_format: 'hidden'
+                })
             });
             const json = await gRes.json();
             if (json?.error) {
@@ -656,7 +663,7 @@ CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE,
 
     const userMsg = `item:${item}, color:${color}, fabric:${fabric}, aesthetic:${aesthetic}, occasion:${occasion}, weather:${weather}, footwear:${footwear || 'suggest one'}, gender:${genderNorm}, notes:${additionalDetails || 'none'}`;
 
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+    const models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
 
     for (const model of models) {
         try {
@@ -669,8 +676,10 @@ CRITICAL for fabric: never just name the fabric — describe its visual TEXTURE,
                 body: JSON.stringify({
                     model,
                     messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }],
-                    max_tokens: 400,
-                    temperature: 0.8
+                    max_tokens: 900,
+                    temperature: 0.8,
+                    reasoning_effort: 'low',
+                    reasoning_format: 'hidden'
                 }),
                 signal: controller.signal
             });
@@ -817,7 +826,7 @@ function callCloudflareImage(cfBody, options, attempt, maxAttempts, onDone) {
         cfRes.on('data', c => chunks.push(c));
         cfRes.on('end', () => {
             const buf = Buffer.concat(chunks);
-            const ct  = cfRes.headers['content-type'] || '';
+            const ct = cfRes.headers['content-type'] || '';
 
             console.log(`📊 CF Status: ${cfRes.statusCode} | Content-Type: ${ct}`);
 
@@ -1049,20 +1058,20 @@ app.post(
 
             console.log('🎨 Running try-on...');
             const tryonPromise = client.predict('/tryon', {
-    dict: { background: personBlob, layers: [], composite: null },
-    garm_img: garmentBlob,
-    garment_des: garmentDes,
-    is_checked: true,
-    is_checked_crop: false,
-    denoise_steps: 20,
-    seed: Math.floor(Math.random() * 999999)
-});
+                dict: { background: personBlob, layers: [], composite: null },
+                garm_img: garmentBlob,
+                garment_des: garmentDes,
+                is_checked: true,
+                is_checked_crop: false,
+                denoise_steps: 20,
+                seed: Math.floor(Math.random() * 999999)
+            });
 
-const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('IDM-VTON took too long to respond (over 90s) — the free queue may be stuck or overloaded.')), 90000)
-);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('IDM-VTON took too long to respond (over 90s) — the free queue may be stuck or overloaded.')), 90000)
+            );
 
-const result = await Promise.race([tryonPromise, timeoutPromise]);
+            const result = await Promise.race([tryonPromise, timeoutPromise]);
 
             console.log('🔍 IDM-VTON raw result:', JSON.stringify(result.data).slice(0, 300));
 
