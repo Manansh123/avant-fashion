@@ -186,20 +186,6 @@ Several features depend on external AI providers with usage limits worth knowing
 
 ---
 
-## ✦ Roadmap
-
-- [x] Trend Discovery + AI styling tips
-- [x] Outfit Lab (AI pairing + image generation)
-- [x] Digital Wardrobe
-- [x] Shop the Look (multi-platform price comparison)
-- [x] AI Stylist chatbot
-- [x] Virtual Fitting Room
-- [ ] Persistent chat history
-- [ ] Multi-garment (full outfit) virtual try-on
-- [ ] Size recommendation engine
-
----
-
 <div align="center">
 
 **AVANT** — *We don't create outfits, we curate alignments.*
