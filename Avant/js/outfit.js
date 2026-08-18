@@ -438,7 +438,7 @@ function shopThisLook() {
 // ================================================================
 function resetActionButtons() {
     const shopBtn = document.getElementById('shop-btn');
-    if (shopBtn) { shopBtn.disabled = false; shopBtn.textContent = '＋  Add to Wardrobe Page'; }
+    if (shopBtn) { shopBtn.disabled = false; shopBtn.textContent = 'Add to Wardrobe Page'; }
 
     const shopLookBtn = document.getElementById('shop-look-btn');
     if (shopLookBtn) { shopLookBtn.disabled = false; shopLookBtn.textContent = 'Shop this Look'; }
