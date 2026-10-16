@@ -20,19 +20,33 @@ function updateNavbarAuth() {
     }
 }
 
+let _layoutLoading = false;
+
 // Function jo components load karega (Navbar/Footer)
 async function loadLayout(callback) {
+    const navPlace = document.getElementById('nav-placeholder');
+    if (!navPlace) {
+        if (callback) callback();
+        return;
+    }
+    if (_layoutLoading || navPlace.querySelector('.navbar')) {
+        updateNavbarAuth();
+        if (callback) callback();
+        return;
+    }
+
+    _layoutLoading = true;
     try {
         const navRes = await fetch('navbar.html');
         const navHtml = await navRes.text();
-        document.getElementById('nav-placeholder').innerHTML = navHtml;
+        navPlace.innerHTML = navHtml;
 
         // Navbar load hote hi auth check karo
         updateNavbarAuth();
 
         // Agar footer placeholder hai toh wo bhi load kar lo
         const footerPlace = document.getElementById('footer-placeholder');
-        if (footerPlace) {
+        if (footerPlace && !footerPlace.querySelector('.footer')) {
             const footRes = await fetch('footer.html');
             const footHtml = await footRes.text();
             footerPlace.innerHTML = footHtml;
@@ -41,5 +55,7 @@ async function loadLayout(callback) {
         if (callback) callback();
     } catch (err) {
         console.error("Layout error:", err);
+    } finally {
+        _layoutLoading = false;
     }
 }

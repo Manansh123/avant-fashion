@@ -25,8 +25,9 @@ async function loadComponent(elementId, filePath) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadComponent('nav-placeholder', 'navbar.html');
-    loadComponent('footer-placeholder', 'footer.html');
+    // Navbar/footer are injected once by loadLayout() on window.onload
+    // (auth.js). Do not also loadComponent here — that raced and replaced
+    // the same placeholders, duplicating burger/auth wiring.
 
     const banner = document.querySelector('.banner-image');
     const heroSection = document.querySelector('.hero');
