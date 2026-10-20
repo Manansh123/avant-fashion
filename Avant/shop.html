@@ -13,40 +13,10 @@
 </head>
 <script type="module" src="js/react/chatbot.js"></script>
 <body class="shop-page-body">
-    <div id="nav-placeholder"></div>
+    <div id="shop-root"></div>
 
-    <main class="shop-page">
-        <header class="shop-hero">
-            <div class="hero-overlay">
-                <p class="editorial-label-ward">04 / CURATED SELECTIONS</p>
-                <h1 class="shop-title">SHOP <span>YOUR LOOK</span></h1>
-                <blockquote class="shop-quote">"Fashion is the armor to survive the reality of everyday life."
-                </blockquote>
-
-                <div class="search-container">
-                    <input type="text" id="shop-search" placeholder="Search for products (e.g. Linen Shirt)...">
-                    <button id="search-btn" onclick="performSearch()">SEARCH</button>
-                </div>
-            </div>
-        </header>
-
-        <section class="results-section">
-            <div class="results-grid" id="shop-results">
-                <p class="initial-msg">Enter a product name to begin your curation.</p>
-            </div>
-        </section>
-    </main>
-
-    <div id="footer-placeholder"></div>
-    <script src="js/main.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-    <script src="js/shop.js"></script>
-    <script src="js/auth.js"></script>
-
-    <script>
-        // Ye function har page pe Navbar load karega + Username dikhayega
-        window.onload = () => loadLayout(initMobileMenu); 
-    </script>
+    <script type="module" src="js/react/shop.js"></script>
 </body>
 
 </html>

@@ -57,7 +57,7 @@ export default function ChatWidget() {
         setIsOpen(next);
         if (next && !hasOpenedOnce) {
             setHasOpenedOnce(true);
-            addMessage('bot', "Hi, I'm your AVANT stylist ✦ How can I help you today?");
+            addMessage('bot', "Hi, I'm your AVANT stylist. How can I help you today?");
         }
     }
 
@@ -166,9 +166,9 @@ export default function ChatWidget() {
                     ) : null}
                 </div>
                 <div id="avant-chat-chips">
-                    <button type="button" className="avant-chip" data-chip="trend" onClick={() => handleChipClick('trend')}>✦ Trend of the Day</button>
-                    <button type="button" className="avant-chip" data-chip="color" onClick={() => handleChipClick('color')}>✦ Color of the Day</button>
-                    <button type="button" className="avant-chip" data-chip="analyze" onClick={() => handleChipClick('analyze')}>✦ Analyze my Fit</button>
+                    <button type="button" className="avant-chip" data-chip="trend" onClick={() => handleChipClick('trend')}>Trend of the Day</button>
+                    <button type="button" className="avant-chip" data-chip="color" onClick={() => handleChipClick('color')}>Color of the Day</button>
+                    <button type="button" className="avant-chip" data-chip="analyze" onClick={() => handleChipClick('analyze')}>Analyze my Fit</button>
                 </div>
                 <div id="avant-chat-preview" className={pendingImageFile ? 'active' : ''}>
                     <img id="avant-chat-preview-img" src={pendingPreviewUrl} alt="preview" />

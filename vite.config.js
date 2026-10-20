@@ -15,7 +15,13 @@ module.exports = defineConfig({
         rollupOptions: {
             input: {
                 login: path.resolve(__dirname, 'client/src/login/main.jsx'),
-                chatbot: path.resolve(__dirname, 'client/src/chatbot/main.jsx')
+                chatbot: path.resolve(__dirname, 'client/src/chatbot/main.jsx'),
+                home: path.resolve(__dirname, 'client/src/home/main.jsx'),
+                trends: path.resolve(__dirname, 'client/src/trends/main.jsx'),
+                outfit: path.resolve(__dirname, 'client/src/outfit/main.jsx'),
+                wardrobe: path.resolve(__dirname, 'client/src/wardrobe/main.jsx'),
+                shop: path.resolve(__dirname, 'client/src/shop/main.jsx'),
+                tryon: path.resolve(__dirname, 'client/src/tryon/main.jsx')
             },
             output: {
                 format: 'es',

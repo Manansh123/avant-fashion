@@ -327,7 +327,7 @@ function ChatWidget() {
 		setIsOpen(next);
 		if (next && !hasOpenedOnce) {
 			setHasOpenedOnce(true);
-			addMessage("bot", "Hi, I'm your AVANT stylist ✦ How can I help you today?");
+			addMessage("bot", "Hi, I'm your AVANT stylist. How can I help you today?");
 		}
 	}
 	function clearImagePreview() {
@@ -444,21 +444,21 @@ function ChatWidget() {
 						className: "avant-chip",
 						"data-chip": "trend",
 						onClick: () => handleChipClick("trend"),
-						children: "✦ Trend of the Day"
+						children: "Trend of the Day"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime$1.jsx)("button", {
 						type: "button",
 						className: "avant-chip",
 						"data-chip": "color",
 						onClick: () => handleChipClick("color"),
-						children: "✦ Color of the Day"
+						children: "Color of the Day"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime$1.jsx)("button", {
 						type: "button",
 						className: "avant-chip",
 						"data-chip": "analyze",
 						onClick: () => handleChipClick("analyze"),
-						children: "✦ Analyze my Fit"
+						children: "Analyze my Fit"
 					})
 				]
 			}),
